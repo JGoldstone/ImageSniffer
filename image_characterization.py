@@ -52,6 +52,7 @@ class ImageCharacterization:
         self._any_red_bin = Bin(self._min_binned, self._max_binned, num_bins)
         self._any_green_bin = Bin(self._min_binned, self._max_binned, num_bins)
         self._any_blue_bin = Bin(self._min_binned, self._max_binned, num_bins)
+        self._tally()
 
     @staticmethod
     def _octant_for_rgb(rgb):
@@ -105,12 +106,29 @@ class ImageCharacterization:
         if image_input is None:
             # TODO check that the problem *is* actually the file is not there
             raise FileNotFoundError(f"could not read image `{self._path}': {oiio.geterror()}")
-        img = image_input.read_image(format=TypeUnknown)
-        has_perfect_black = img[:, :, 0] == 0 & img[:, :, 1] == 0 & img[:, :, 2] == 0
+        img = image_input.read_image()
+        has_zero_red = img[:, :, 0] == 0
+        has_zero_green = img[:, :, 1] == 0
+        has_zero_blue = img[:, :, 2] == 0
+        has_perfect_black =  has_zero_red & has_zero_green & has_zero_blue
         self._perfect_black_count = np.sum(has_perfect_black)
         has_neg_red = img[:, :, 0] < 0
         has_neg_green = img[:, :, 1] < 0
         has_neg_blue = img[:, :, 2] < 0
+        neg_red_count = np.sum(has_neg_red)
+        neg_green_count = np.sum(has_neg_green)
+        neg_blue_count = np.sum(has_neg_blue)
+        img_height = image_input.spec().height
+        nuke_x = 174
+        nuke_y = 980
+        inv_nuke_y = (img_height - 1) - nuke_y
+        ndarray_row = (img_height - 1) - nuke_y
+        ndarray_col = nuke_x
+        should_have_neg_green = img[ndarray_row][ndarray_col]
+        foo = img[nuke_x][nuke_y]
+        bar = img[nuke_x][inv_nuke_y]
+        baz = img[nuke_y][nuke_x]
+        quux = img[inv_nuke_y][nuke_x]
         self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
         self._add_to_any_bins(img, has_neg_red, has_neg_green, has_neg_blue)
         self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
