@@ -27,8 +27,9 @@ class CharacterizationSequence:
         self._first = first
         self._last = last
         self._missing_frames_ok = missing_frames_ok
-        self.frames = []
+        self.frame_paths = []
         self.c18ns = []
+        self.build_frame_list()
 
     def build_frame_list(self):
         dir_path = Path(self._dir_path)
@@ -36,14 +37,14 @@ class CharacterizationSequence:
             raise FileNotFoundError(f"The file `{dir_path}' could not be found")
         if not dir_path.is_dir():
             raise NotADirectoryError(f"The file `{dir_path}' exists but is not a directory")
-        frame_numbers = range(self._first, self._last)
+        frame_numbers = range(self._first, self._last + 1)
         for frame_number in frame_numbers:
             num_component = str(frame_number).rjust(self._frame_number_width, '0')
-            file_path = dir_path / self._file_base / '.' / num_component / '.exr'
+            file_path = Path(f"{dir_path}/{self._file_base}.{num_component}.exr")
             if not file_path.exists():
                 raise FileNotFoundError(f"The file `{file_path}' could not be found")
-            self.frames.append(file_path)
+            self.frame_paths.append(file_path)
 
     def characterize_frames(self):
-        for file in self.frames:
+        for file in self.frame_paths:
             self.c18ns.append(ImageCharacterization(file))
