@@ -20,6 +20,7 @@ __status__ = 'Experimental'
 class CharacterizationSequence:
 
     def __init__(self, dir_path, file_base, frame_number_width, first, last, missing_frames_ok=False):
+        assert frame_number_width >= 0
         self._dir_path = dir_path
         self._file_base = file_base
         self._frame_number_width = frame_number_width
@@ -40,11 +41,16 @@ class CharacterizationSequence:
         frame_numbers = range(self._first, self._last + 1)
         for frame_number in frame_numbers:
             num_component = str(frame_number).rjust(self._frame_number_width, '0')
-            file_path = Path(f"{dir_path}/{self._file_base}.{num_component}.exr")
+            if self._frame_number_width == 0:
+                file_path = Path(f"{dir_path}/{self._file_base}.exr")
+            else:
+                file_path = Path(f"{dir_path}/{self._file_base}.{num_component}.exr")
             if not file_path.exists():
                 raise FileNotFoundError(f"The file `{file_path}' could not be found")
             self.frame_paths.append(file_path)
 
     def characterize_frames(self):
-        for file in self.frame_paths:
-            self.c18ns.append(ImageCharacterization(file))
+        paths = [str(fp) for fp in self.frame_paths]
+        for path in paths:
+            self.c18ns.append(ImageCharacterization(path))
+            print(f"characterized `{path}'")

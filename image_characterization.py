@@ -131,16 +131,30 @@ class ImageCharacterization:
         for rgb in img[has_neg_blue]:
             self._any_blue_bin.add_entry(rgb)
 
-    def _nuke_coords_from_ndarray_coords(self, x, y):
+    def _nuke_coords_from_ndarray_coords(self, y, x):
         return x, (self._height - 1) - y
 
     # add characterizations of probably clipped pixels at top and bottom
+
+    def _print_negative_pixel_components(self, img, has_neg_component, channel_name):
+        for row in range(self._height):
+            for col in range (self._width):
+                if has_neg_component[row][col]:
+                    nuke_x, nuke_y = self._nuke_coords_from_ndarray_coords(row, col)
+                    print(f"{channel_name} negative at [{row}][{col}] (nuke({nuke_x}, {nuke_y})): {img[row,col,0]}, {img[row,col,1]}, {img[row,col,2]}")
 
     def _tally(self):
         image_input = ImageInput.open(self._path)
         if image_input is None:
             # TODO check that the problem *is* actually the file is not there
             raise FileNotFoundError(f"could not read image `{self._path}': {oiio.geterror()}")
+        spec = image_input.spec()
+        roi = spec.roi
+        # n.b. ROI xend and yend are range-style 'one beyond the end' values
+        self._x = roi.xbegin
+        self._width = roi.xend - roi.xbegin
+        self._y = roi.ybegin
+        self._height = roi.yend - roi.ybegin
         img = image_input.read_image()
         has_zero_red = img[:, :, 0] == 0
         has_zero_green = img[:, :, 1] == 0
@@ -151,10 +165,29 @@ class ImageCharacterization:
         has_neg_green = img[:, :, 1] < 0
         has_neg_blue = img[:, :, 2] < 0
         neg_red_count = np.sum(has_neg_red)
+        # foo = img[980][0]
+        bar = img[(1178-1)-980][174]
+        # baz = img[(1178-1)-978 - 1][0]
+        # quux = img[(1178-1)-978 + 1][0]
+        if neg_red_count > 0:
+            self._print_negative_pixel_components(img, has_neg_red, "red")
+            # for y in range(spec.height):
+            #     for x in range(spec.width):
+            #         if has_neg_red[y][x]:
+            #             nuke_x, nuke_y = self._nuke_coords_from_ndarray_coords(y, x)
+            #             print(f"red channel negative at [{y}][{x}] (nuke({nuke_x},{nuke_y}): {img[y,x,0]}, {img[y,x,1]}, {img[y,x,2]}")
         neg_green_count = np.sum(has_neg_green)
+        if neg_green_count > 0:
+            self._print_negative_pixel_components(img, has_neg_green, "green")
+            # for y in range(spec.height):
+            #     for x in range(spec.width):
+            #         if has_neg_green[y][x]:
+            #             nuke_x, nuke_y = self._nuke_coords_from_ndarray_coords(y, x)
+            #             print(f"green channel negative at [{y}][{x}] (nuke({nuke_x},{nuke_y}): {img[y,x,0]}, {img[y,x,1]}, {img[y,x,2]}")
         neg_blue_count = np.sum(has_neg_blue)
-        if neg_red_count > 0 and neg_green_count > 0 and neg_blue_count > 0:
-            return
-        self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
-        self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)
-        self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
+        if neg_blue_count > 0:
+            self._print_negative_pixel_components(img, has_neg_blue, "blue")
+        if neg_red_count > 0 or neg_green_count > 0 or neg_blue_count > 0:
+            self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
+            self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)
+            self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
