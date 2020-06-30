@@ -1,46 +1,76 @@
 # -*- coding: utf-8 -*-
 """
 RGB negative value characterization
-=======================================
+===================================
 
-Examines OpenEXR images to look for negative pixel values, then characterize them
+Examines OpenEXR images to look for negative pixel values, then characterizes them
+
+-   :class:'image_characteristics.Charancterization
 
 """
 
 import numpy as np
 
 import OpenImageIO as oiio
-from OpenImageIO import ImageInput, TypeUnknown
-from math import log10
+from OpenImageIO import ImageInput
+from sys import float_info
+from math import log10, floor
+
+__author__ = 'Joseph Goldstone'
+__copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
+__license__ = 'New BSD License - https://opensource.org/licenses/BSD-3-Clause'
+__maintainer__ = 'Joseph GOldstone'
+__email__ = 'jgoldstone@arri.com'
+__status__ = 'Experimental'
 
 
 def lerp(x, min_domain, max_domain, min_range, max_range):
     return min_range + (max_range - min_range) * (x - min_domain) / (max_domain - min_domain)
 
 
-class Bin:
+class LogBin:
 
-    def __init__(self, min_binned, max_binned, num_bins):
-        self._min_binned = min_binned
-        self._max_binned = max_binned
-        self._too_small_bin_count = 0
-        self._too_large_bin_count = 0
+    def __init__(self, min_value, max_value, num_bins):
+        self.min = min_value
+        self.max = max_value
+        self.num_underflowed = 0
+        self.num_overflowed = 0
+        self._epsilon = float_info.epsilon * 4
         self._bins = np.array(num_bins, dtype=np.int)
 
+    def _fwd_lerp_value_to_ix(self, value):
+        return floor(lerp(value, self.min, self.max - self._epsilon, 0, len(self._bins) - 1))
+
+    def _inv_lerp_ix_to_value(self, ix):
+        return lerp(ix, 0, len(self._bins) - 1, self.min, self.max - self._epsilon)
+
     def add_entry(self, value):
-        ix = lerp(log10(value), self._min_binned, self._max_binned, 0, len(self._bins)-1)
+        assert value > 0
+        ix = self._fwd_lerp_value_to_ix(log10(value))
         if ix < 0:
-            self._too_small_bin_count += 1
+            self.num_underflowed += 1
         elif ix > len(self._bins) - 1:
-            self._too_large_bin_count += 1
+            self.num_overflowed += 1
         else:
             self._bins[ix] += 1
+
+    def bin_bounds(self, ix):
+        assert 0 <= ix < len(self._bins)
+        assert floor(ix) == ix
+        lower_bound = 10 ** self._inv_lerp_ix_to_value(ix)
+        upper_bound = 10 ** self._inv_lerp_ix_to_value(ix + 1)
+        return lower_bound, upper_bound
 
 
 class ImageCharacterization:
 
     def __init__(self, path, num_bins=81):
         self._path = path
+        # We adopt the OpenImageIO convention of the origin being in the upper left
+        self._left = 0
+        self._top = 0
+        self._width = 0
+        self._height = 0
         self._perfect_black_count = 0
         self._octants = []
         self._octant_counts = []
@@ -48,10 +78,10 @@ class ImageCharacterization:
         self._total_outside_first_quadrant_count = 0
         self._min_binned = -4  # anything smaller in magnitude than 1.0e-4 is 'too small'
         self._max_binned = 1  # anything bigger in magnitude than 10 is 'too big'
-        self._any_bin = Bin(self._min_binned, self._max_binned, num_bins)
-        self._any_red_bin = Bin(self._min_binned, self._max_binned, num_bins)
-        self._any_green_bin = Bin(self._min_binned, self._max_binned, num_bins)
-        self._any_blue_bin = Bin(self._min_binned, self._max_binned, num_bins)
+        self._any_bin = LogBin(self._min_binned, self._max_binned, num_bins)
+        self._any_red_bin = LogBin(self._min_binned, self._max_binned, num_bins)
+        self._any_green_bin = LogBin(self._min_binned, self._max_binned, num_bins)
+        self._any_blue_bin = LogBin(self._min_binned, self._max_binned, num_bins)
         self._tally()
 
     @staticmethod
@@ -90,7 +120,7 @@ class ImageCharacterization:
                     if examplar[i] < 0:
                         self._rgb_component_counts[i] += octant_census
 
-    def _add_to_any_bins(self, img, has_neg_red, has_neg_green, has_neg_blue):
+    def _add_to_any_log_bins(self, img, has_neg_red, has_neg_green, has_neg_blue):
         has_any_neg = has_neg_red | has_neg_green | has_neg_blue
         for rgb in img[has_any_neg]:
             self._any_bin.add_entry(rgb)
@@ -101,6 +131,11 @@ class ImageCharacterization:
         for rgb in img[has_neg_blue]:
             self._any_blue_bin.add_entry(rgb)
 
+    def _nuke_coords_from_ndarray_coords(self, x, y):
+        return x, (self._height - 1) - y
+
+    # add characterizations of probably clipped pixels at top and bottom
+
     def _tally(self):
         image_input = ImageInput.open(self._path)
         if image_input is None:
@@ -110,7 +145,7 @@ class ImageCharacterization:
         has_zero_red = img[:, :, 0] == 0
         has_zero_green = img[:, :, 1] == 0
         has_zero_blue = img[:, :, 2] == 0
-        has_perfect_black =  has_zero_red & has_zero_green & has_zero_blue
+        has_perfect_black = has_zero_red & has_zero_green & has_zero_blue
         self._perfect_black_count = np.sum(has_perfect_black)
         has_neg_red = img[:, :, 0] < 0
         has_neg_green = img[:, :, 1] < 0
@@ -118,17 +153,8 @@ class ImageCharacterization:
         neg_red_count = np.sum(has_neg_red)
         neg_green_count = np.sum(has_neg_green)
         neg_blue_count = np.sum(has_neg_blue)
-        img_height = image_input.spec().height
-        nuke_x = 174
-        nuke_y = 980
-        inv_nuke_y = (img_height - 1) - nuke_y
-        ndarray_row = (img_height - 1) - nuke_y
-        ndarray_col = nuke_x
-        should_have_neg_green = img[ndarray_row][ndarray_col]
-        foo = img[nuke_x][nuke_y]
-        bar = img[nuke_x][inv_nuke_y]
-        baz = img[nuke_y][nuke_x]
-        quux = img[inv_nuke_y][nuke_x]
+        if neg_red_count > 0 and neg_green_count > 0 and neg_blue_count > 0:
+            return
         self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
-        self._add_to_any_bins(img, has_neg_red, has_neg_green, has_neg_blue)
+        self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)
         self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
