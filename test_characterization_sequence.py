@@ -14,19 +14,20 @@ class C18nSequenceTestCase(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_real_sequence_subset_loads(self):
-        # dir_path = '/Users/jgoldstone/Content/not_secret_content/arri/bur/tfe/aces/vwg_gm/balloon+2XL5' \
-        #            '-C_demo_mode_test/derived/seqs/A003R3VC/A003C003_120101_cropped'
-        dir_path = '/tmp'
-        # file_base = 'A003C003_120101_cropped'
-        file_base = 'green_negative_sprinkle_at_x0174_y_0980'
-        # frame_number_width = 4
-        frame_number_width = 0
-        first = 30
-        last = 40
-        # c18n = CharacterizationSequence(dir_path, file_base, frame_number_width, first, last)
-        c18n = CharacterizationSequence(dir_path, file_base, 0, 0, 0)
+        dir_path = '/Users/jgoldstone/Content/not_secret_content/arri/bur/tfe/aces/vwg_gm/balloon+2XL5' \
+                   '-C_demo_mode_test/derived/seqs/A003R3VC/A003C003_120101_cropped'
+        # dir_path = '/tmp'
+        file_base = 'A003C003_120101_cropped'
+        # file_base = 'green_negative_sprinkle_at_x0174_y_0980'
+        frame_number_width = 4
+        # frame_number_width = 0
+        first = 33
+        last = 43
+        c18n = CharacterizationSequence(dir_path, file_base, frame_number_width, first, last)
+        # c18n = CharacterizationSequence(dir_path, file_base, 0, 0, 0)
         # self.assertEqual(1 + last - first, len(c18n.frame_paths))
         c18n.characterize_frames()
+        print(str(c18n))
 
 
 if __name__ == '__main__':

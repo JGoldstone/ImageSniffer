@@ -52,5 +52,7 @@ class CharacterizationSequence:
     def characterize_frames(self):
         paths = [str(fp) for fp in self.frame_paths]
         for path in paths:
-            self.c18ns.append(ImageCharacterization(path))
+            c18n = ImageCharacterization(path)
+            print(str(c18n))
+            self.c18ns.append(c18n)
             print(f"characterized `{path}'")
