@@ -21,8 +21,10 @@ class C18nSequenceTestCase(unittest.TestCase):
         # file_base = 'green_negative_sprinkle_at_x0174_y_0980'
         frame_number_width = 4
         # frame_number_width = 0
-        first = 33
-        last = 43
+        first = 1
+        last = 7212
+
+
         c18n = CharacterizationSequence(dir_path, file_base, frame_number_width, first, last)
         # c18n = CharacterizationSequence(dir_path, file_base, 0, 0, 0)
         # self.assertEqual(1 + last - first, len(c18n.frame_paths))

@@ -98,9 +98,9 @@ class ImageCharacterization:
         octant += 1 if rgb[2] < 0 else 0
         return octant
 
-    def _add_to_any_counts(self, has_neg_red, has_neg_green, has_neg_blue):
-        has_any_neg = has_neg_red | has_neg_green | has_neg_blue
-        self.total_outside_first_octant = np.sum(has_any_neg)
+    # def _add_to_any_counts(self, has_neg_red, has_neg_green, has_neg_blue):
+    #     has_any_neg = has_neg_red | has_neg_green | has_neg_blue
+    #     self.total_outside_first_octant = np.sum(has_any_neg)
 
     def _tally_by_octant(self):
         for has_blue_neg in (True, False):
@@ -109,8 +109,6 @@ class ImageCharacterization:
                     if not (has_red_neg or has_green_neg or has_blue_neg):
                         continue
                     key = (has_red_neg, has_green_neg, has_blue_neg)
-                    if key not in self._octants:
-                        return
                     if self._octants[key].any():
                         count = len(self._octants[key])
                         self.octant_counts[key] = count
@@ -210,7 +208,7 @@ class ImageCharacterization:
         # if neg_blue_count > 0:
         #     self._print_negative_pixel_components(img, has_neg_blue, "blue")
         if neg_red_count > 0 or neg_green_count > 0 or neg_blue_count > 0:
-            self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
+            # self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
             self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)
             self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
 

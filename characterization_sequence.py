@@ -17,6 +17,7 @@ __maintainer__ = 'Joseph GOldstone'
 __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
+
 class CharacterizationSequence:
 
     def __init__(self, dir_path, file_base, frame_number_width, first, last, missing_frames_ok=False):
@@ -53,6 +54,18 @@ class CharacterizationSequence:
         paths = [str(fp) for fp in self.frame_paths]
         for path in paths:
             c18n = ImageCharacterization(path)
-            print(str(c18n))
+            # print(str(c18n))
+            # print(f"characterized `{path}'")
             self.c18ns.append(c18n)
-            print(f"characterized `{path}'")
+        octant_counts_across_sequence = {}
+        total_census = 0
+        for c18n in self.c18ns:
+            for octant in c18n.octant_counts.keys():
+                if octant in octant_counts_across_sequence:
+                    octant_counts_across_sequence[octant] += c18n.octant_counts[octant]
+                else:
+                    octant_counts_across_sequence[octant] = c18n.octant_counts[octant]
+                total_census += c18n.octant_counts[octant]
+        for octant in octant_counts_across_sequence.keys():
+            print (f"{octant}: {octant_counts_across_sequence[octant]}\n")
+        return self.c18ns
