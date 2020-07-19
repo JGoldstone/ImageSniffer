@@ -36,7 +36,7 @@ class LogBin:
         self.num_underflowed = 0
         self.num_overflowed = 0
         self._epsilon = float_info.epsilon * 4
-        self._bins = np.ndarray(num_bins, dtype=np.int)
+        self._bins = np.zeros(num_bins, dtype=np.int)
 
     def _fwd_lerp_value_to_ix(self, value):
         return floor(lerp(value, self.min, self.max - self._epsilon, 0, len(self._bins) - 1))
