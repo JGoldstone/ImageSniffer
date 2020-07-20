@@ -19,7 +19,7 @@ from math import log10, floor
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
 __license__ = 'New BSD License - https://opensource.org/licenses/BSD-3-Clause'
-__maintainer__ = 'Joseph GOldstone'
+__maintainer__ = 'Joseph Goldstone'
 __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
@@ -30,35 +30,32 @@ def lerp(x, min_domain, max_domain, min_range, max_range):
 
 class LogBin:
 
-    def __init__(self, min_value, max_value, num_bins):
-        self.min = min_value
-        self.max = max_value
+    def __init__(self, log_max, log_min, num_bins):
+        self.log_max = log_max
+        self.log_min = log_min
         self.num_underflowed = 0
         self.num_overflowed = 0
         self._epsilon = float_info.epsilon * 4
         self._bins = np.zeros(num_bins, dtype=np.int)
 
     def _fwd_lerp_value_to_ix(self, value):
-        return floor(lerp(value, self.min, self.max - self._epsilon, 0, len(self._bins) - 1))
+        lerped = lerp(value, self.log_max, self.log_min, 0, len(self._bins))
+        # handle case where lerped value is exactly self.max
+        if lerped == len(self._bins):
+            lerped -= 1
+        return lerped
 
     def _inv_lerp_ix_to_value(self, ix):
-        return lerp(ix, 0, len(self._bins) - 1, self.min, self.max - self._epsilon)
+        return lerp(ix, 0, len(self._bins) - 1, self.log_max, self.max)
 
     def add_entry(self, value):
-        ix = self._fwd_lerp_value_to_ix(log10(value))
-        if ix < 0:
-            self.num_underflowed += 1
-        elif ix > len(self._bins) - 1:
+        log_value = log10(value)
+        if log_value > self.log_max:
             self.num_overflowed += 1
+        elif log_value <= self.log_min:
+            self.num_underflowed += 1
         else:
-            self._bins[ix] += 1
-
-    # def add_entries(self, img, chan):
-    #     for row in range(img.shape[0]):
-    #         for col in range(img.shape[1]):
-    #             value = img[row][col][chan]
-    #             if value < 0:
-    #                 add_entry(value)
+            self._bins[floor(self._fwd_lerp_value_to_ix(log_value))] += 1
 
     def bin_bounds(self, ix):
         assert 0 <= ix < len(self._bins)
