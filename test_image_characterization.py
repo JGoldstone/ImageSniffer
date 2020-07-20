@@ -37,38 +37,22 @@ class MyTestCase(unittest.TestCase):
                            TEST_LERP_RANGE_HIGH)
         self.assertGreater(ix_too_high, TEST_LERP_RANGE_HIGH)
 
-    # def test_bin_ctor(self):
-    #     test_bin = LogBin(-5, 2, 30)
-    #     self.assertEqual(-5, test_bin.min)
-    #     self.assertEqual(2, test_bin.max)
-    #     self.assertEqual(0, test_bin.num_overflowed)
-    #     self.assertEqual(0, test_bin.num_underflowed)
-    #     # n.b. assertLess suceeds for x+2*e < x+4*e, fails for x+3*e < x+4*e
-    #     smaller = float_info.epsilon * 2
-    #     same = float_info.epsilon * 4
-    #     # n.b. assertLess suceeds for x+6*e > x+4*e, fails for x+5*e > x+4*e
-    #     # moral: when nudging, always nudge at least 2*float_info.epsilon
-    #     bigger = float_info.epsilon * 6
-    #     self.assertLess(4 + smaller, 4 + test_bin._epsilon)
-    #     self.assertEqual(4 + same, 4 + test_bin._epsilon)
-    #     self.assertGreater(4 + bigger, 4 + test_bin._epsilon)
-    #     self.assertEqual(30, len(test_bin._bins))
-    #
-    # def test_binning_underflow(self):
-    #     test_bin = LogBin(-4, 2, 8)
-    #     test_bin.add_entry(1e-5)
-    #     # make sure this doesn't get counted as underflow
-    #     test_bin.add_entry(1e-5 + 2 * float_info.epsilon)
-    #     self.assertEqual(2, test_bin.num_underflowed)
-    #
-    # def test_binning_overflow(self):
-    #     test_bin = LogBin(-4, 2, 8)
-    #     test_bin.add_entry(100)
-    #     # gack
-    #     test_bin.add_entry(100.0000000000001)
-    #     test_bin.add_entry(100.000000000001)
-    #     test_bin.add_entry(101)
-    #     self.assertEqual(2, test_bin.num_overflowed)
+    def test_bin_ctor(self):
+        test_bin = LogBin(-5, 2, 30)
+        self.assertEqual(-5, test_bin.log_max)
+        self.assertEqual(2, test_bin.log_min)
+        self.assertEqual(0, test_bin.num_overflowed)
+        self.assertEqual(0, test_bin.num_underflowed)
+        # n.b. assertLess suceeds for x+2*e < x+4*e, fails for x+3*e < x+4*e
+        smaller = float_info.epsilon * 2
+        same = float_info.epsilon * 4
+        # n.b. assertLess suceeds for x+6*e > x+4*e, fails for x+5*e > x+4*e
+        # moral: when nudging, always nudge at least 2*float_info.epsilon
+        bigger = float_info.epsilon * 6
+        self.assertLess(4 + smaller, 4 + test_bin._epsilon)
+        self.assertEqual(4 + same, 4 + test_bin._epsilon)
+        self.assertGreater(4 + bigger, 4 + test_bin._epsilon)
+        self.assertEqual(30, len(test_bin._bins))
 
     # the bins:
     # test_bin = LogBin(2, -4, 8)
