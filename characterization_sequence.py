@@ -9,11 +9,12 @@ Class collecting image sequencing information, chacaterizations thereof, and way
 
 from pathlib import Path
 from image_characterization import ImageCharacterization
+from image_sequence import ImageSequence
 
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
 __license__ = 'New BSD License - https://opensource.org/licenses/BSD-3-Clause'
-__maintainer__ = 'Joseph GOldstone'
+__maintainer__ = 'Joseph Goldstone'
 __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
@@ -21,42 +22,26 @@ __status__ = 'Experimental'
 class CharacterizationSequence:
 
     def __init__(self, dir_path, file_base, frame_number_width, first, last, missing_frames_ok=False):
-        assert frame_number_width >= 0
-        self._dir_path = dir_path
-        self._file_base = file_base
-        self._frame_number_width = frame_number_width
-        self._suffix = 'exr'
-        self._first = first
-        self._last = last
-        self._missing_frames_ok = missing_frames_ok
+        self._seq = ImageSequence(dir_path, file_base, "exr", first, last, 1, frame_number_width)
         self.frame_paths = []
         self.c18ns = []
         self.build_frame_list()
 
     def build_frame_list(self):
-        dir_path = Path(self._dir_path)
+        dir_path = self._seq.dir
         if not dir_path.exists():
-            raise FileNotFoundError(f"The file `{dir_path}' could not be found")
+            raise FileNotFoundError(f"The sequence directory `{dir_path}' could not be found")
         if not dir_path.is_dir():
             raise NotADirectoryError(f"The file `{dir_path}' exists but is not a directory")
-        frame_numbers = range(self._first, self._last + 1)
-        for frame_number in frame_numbers:
-            num_component = str(frame_number).rjust(self._frame_number_width, '0')
-            if self._frame_number_width == 0:
-                file_path = Path(f"{dir_path}/{self._file_base}.exr")
-            else:
-                file_path = Path(f"{dir_path}/{self._file_base}.{num_component}.exr")
-            if not file_path.exists():
-                raise FileNotFoundError(f"The file `{file_path}' could not be found")
-            self.frame_paths.append(file_path)
+        for f in range(self._seq.start, self._seq.end, self._seq.inc):
+            self.frame_paths.append(self._seq.path_for_frame(f))
 
-    def characterize_frames(self):
-        paths = [str(fp) for fp in self.frame_paths]
-        for path in paths:
-            c18n = ImageCharacterization(path)
-            # print(str(c18n))
-            # print(f"characterized `{path}'")
+    def build_c18n_list(self):
+        for p in self.frame_paths:
+            c18n = ImageCharacterization(str(p))
             self.c18ns.append(c18n)
+
+    def take_octant_census(self):
         octant_counts_across_sequence = {}
         total_census = 0
         for c18n in self.c18ns:

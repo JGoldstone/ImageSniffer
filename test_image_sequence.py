@@ -18,7 +18,7 @@ class MyTestCase(unittest.TestCase):
         # rather dubious to have the test suite setup depend on something it's defining.
         # TODO re-implement test_image_sequence.py setUp() and tearDown() without using ImageSequence itself
         self.test_seq = ImageSequence(TEST_DIR_PATH, TEST_FILE_NAME, TEST_FILE_EXT, start=TEST_SEQ_START, end=TEST_SEQ_END, inc=TEST_SEQ_INC, frame_digits=TEST_SEQ_FRAME_DIGITS)
-        d = Path(self.test_seq._dir_path)
+        d = Path(self.test_seq._dir)
         if not d.exists():
             d.mkdir(mode=0o777)
             print(f"created directory `{d}'")
@@ -34,17 +34,17 @@ class MyTestCase(unittest.TestCase):
             p = self.test_seq.path_for_frame(f)
             p.unlink(missing_ok=True)
             print(f"\tremoved file `{p}'")
-        d = Path(self.test_seq._dir_path)
+        d = Path(self.test_seq._dir)
         d.rmdir()
         print(f"removed directory `{d}'")
 
     def test_ctor(self):
-        self.assertEqual(TEST_DIR_PATH, self.test_seq._dir_path)
-        self.assertEqual(TEST_FILE_NAME, self.test_seq._file_name)
-        self.assertEqual(TEST_FILE_EXT, self.test_seq._file_ext)
-        self.assertEqual(TEST_SEQ_START, self.test_seq._start)
-        self.assertEqual(TEST_SEQ_END, self.test_seq._end)
-        self.assertEqual(TEST_SEQ_INC, self.test_seq._inc)
+        self.assertEqual(TEST_DIR_PATH, str(self.test_seq.dir))
+        self.assertEqual(TEST_FILE_NAME, self.test_seq._name)
+        self.assertEqual(TEST_FILE_EXT, self.test_seq._suffix)
+        self.assertEqual(TEST_SEQ_START, self.test_seq.start)
+        self.assertEqual(TEST_SEQ_END, self.test_seq.end)
+        self.assertEqual(TEST_SEQ_INC, self.test_seq.inc)
         self.assertEqual(TEST_SEQ_FRAME_DIGITS, self.test_seq._frame_digits)
 
     def test_path_for_frame(self):
