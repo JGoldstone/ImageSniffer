@@ -1,6 +1,14 @@
 import unittest
+
+from pathlib import Path
+
 from characterization_sequence import CharacterizationSequence
 
+CROPPED_HOT_SEQUENCE_DIR_PATH = '/Users/jgoldstone/Content/not_secret_content/arri/bur/tfe/aces/vwg_gm/balloon+2XL5-C_demo_mode_test/derived/seqs/A003R3VC/A003C003_120101_cropped'
+CROPPED_
+# start at 1, end at 7212
+TEST_FIRST_FRAME = 1000
+TEST_LAST_FRAME = 1050
 
 class C18nSequenceTestCase(unittest.TestCase):
 
