@@ -1,7 +1,7 @@
 import unittest
 
 from sys import float_info
-from image_characterization import lerp, LogBin, ImageCharacterization
+from bin import lerp, LogBin
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
 
@@ -120,12 +120,6 @@ class MyTestCase(unittest.TestCase):
         test_bin.add_entry(0.000001 - 1*our_epsilon)
         test_bin.add_entry(0.000001 - 2*our_epsilon)
         self.assertEqual(3, test_bin.num_underflowed)
-
-
-
-
-    # def test_something(self):
-    #     c18n = ImageCharacterization(EXR_IMAGE_PATH)
 
 
 if __name__ == '__main__':

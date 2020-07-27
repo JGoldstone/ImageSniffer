@@ -46,7 +46,7 @@ class LogBin:
         return lerped
 
     def _inv_lerp_ix_to_value(self, ix):
-        return lerp(ix, 0, len(self._bins) - 1, self.log_max, self.max)
+        return lerp(ix, 0, len(self._bins), self.log_max, self.log_min)
 
     def add_entry(self, value):
         log_value = log10(value)
@@ -63,6 +63,7 @@ class LogBin:
         lower_bound = 10 ** self._inv_lerp_ix_to_value(ix)
         upper_bound = 10 ** self._inv_lerp_ix_to_value(ix + 1)
         return lower_bound, upper_bound
+
 
 
 class ImageCharacterization:

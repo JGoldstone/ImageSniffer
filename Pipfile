@@ -11,7 +11,8 @@ colour-science = { git = 'https://github.com/jgoldstone/colour.git@develop', edi
 # needs to be referenced by a symlink in the pyenv directory that pipenv is using as its base.
 # See the OmniOutliner file 'we have been here before' for details.
 # openimageio = { version = "*" }
-
+jupyterlab = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.8"
