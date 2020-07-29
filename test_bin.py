@@ -1,7 +1,7 @@
 import unittest
 
 from sys import float_info
-from bin import lerp, LogBin
+from bins import lerp, LogBin
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
 

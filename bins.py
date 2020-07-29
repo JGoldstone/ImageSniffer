@@ -17,7 +17,7 @@ base 10 log, and use that to index a set of 8 bins (and beyond that,
 overflow and underflow counters).
 
 The bin would be created like this:
-    # test_bin = LogBin(2, -4, 8)
+    # test_bin = LogBins(2, -4, 8)
 
 Taking the base 10 log of the negated negative exposure value is done
 at the moment by LogNBin's add_entry method.
@@ -54,13 +54,14 @@ __status__ = 'Experimental'
 
 # TODO find out if class methods would show up in __all__
 __all__ = [
+    'LogBins'
 ]
 
 def lerp(x, min_domain, max_domain, min_range, max_range):
     return min_range + (max_range - min_range) * (x - min_domain) / (max_domain - min_domain)
 
 
-class LogBin:
+class LogBins:
 
     def __init__(self, log_max, log_min, num_bins):
         self.log_max = log_max
@@ -70,30 +71,34 @@ class LogBin:
         self._epsilon = float_info.epsilon * 4
         self._bins = np.zeros(num_bins, dtype=np.int)
 
-    def _fwd_lerp_value_to_ix(self, value):
+    def ix_for_value(self, value):
         lerped = lerp(value, self.log_max, self.log_min, 0, len(self._bins))
         # handle case where lerped value is exactly self.max
         if lerped == len(self._bins):
             lerped -= 1
         return lerped
 
-    def _inv_lerp_ix_to_value(self, ix):
+    def value_for_ix(self, ix):
         return lerp(ix, 0, len(self._bins), self.log_max, self.log_min)
 
     def add_entry(self, value):
         log_value = log10(value)
         if log_value > self.log_max:
             self.num_overflowed += 1
+            return None
         elif log_value <= self.log_min:
             self.num_underflowed += 1
+            return None
         else:
-            self._bins[floor(self._fwd_lerp_value_to_ix(log_value))] += 1
+            ix = floor(self.ix_for_value(log_value))
+            self._bins[ix] += 1
+            return ix
 
     def bin_bounds(self, ix):
         assert 0 <= ix < len(self._bins)
         assert floor(ix) == ix
-        lower_bound = 10 ** self._inv_lerp_ix_to_value(ix)
-        upper_bound = 10 ** self._inv_lerp_ix_to_value(ix + 1)
+        lower_bound = 10 ** self.value_for_ix(ix)
+        upper_bound = 10 ** self.value_for_ix(ix + 1)
         return lower_bound, upper_bound
 
     # TODO write a generator for bounds range strings that includes overflow and underflow counters in addition to bin bounds, using the infinity symbol wheere needed

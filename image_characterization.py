@@ -24,48 +24,6 @@ __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
 
-def lerp(x, min_domain, max_domain, min_range, max_range):
-    return min_range + (max_range - min_range) * (x - min_domain) / (max_domain - min_domain)
-
-
-class LogBin:
-
-    def __init__(self, log_max, log_min, num_bins):
-        self.log_max = log_max
-        self.log_min = log_min
-        self.num_underflowed = 0
-        self.num_overflowed = 0
-        self._epsilon = float_info.epsilon * 4
-        self._bins = np.zeros(num_bins, dtype=np.int)
-
-    def _fwd_lerp_value_to_ix(self, value):
-        lerped = lerp(value, self.log_max, self.log_min, 0, len(self._bins))
-        # handle case where lerped value is exactly self.max
-        if lerped == len(self._bins):
-            lerped -= 1
-        return lerped
-
-    def _inv_lerp_ix_to_value(self, ix):
-        return lerp(ix, 0, len(self._bins), self.log_max, self.log_min)
-
-    def add_entry(self, value):
-        log_value = log10(value)
-        if log_value > self.log_max:
-            self.num_overflowed += 1
-        elif log_value <= self.log_min:
-            self.num_underflowed += 1
-        else:
-            self._bins[floor(self._fwd_lerp_value_to_ix(log_value))] += 1
-
-    def bin_bounds(self, ix):
-        assert 0 <= ix < len(self._bins)
-        assert floor(ix) == ix
-        lower_bound = 10 ** self._inv_lerp_ix_to_value(ix)
-        upper_bound = 10 ** self._inv_lerp_ix_to_value(ix + 1)
-        return lower_bound, upper_bound
-
-
-
 class ImageCharacterization:
 
     def __init__(self, path, num_bins=81):
