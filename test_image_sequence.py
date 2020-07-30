@@ -114,8 +114,9 @@ class MyTestCase(unittest.TestCase):
         if len(seq) != 0:
             assert sum(np.array(seq) < 0) == 0
             for frame_number in seq:
+                name = ""
                 if base_name is not None:
-                    name = name + "."
+                    name = base_name + "."
                 assert len(str(frame_number)) <= frame_number_width
                 name = name + f"{frame_number:0{frame_number_width}}"
                 if suffix is not None:
@@ -150,6 +151,14 @@ class MyTestCase(unittest.TestCase):
         files = tmp_subdir_path.glob('*')
         self.assertEqual(0, len(list(files)))
 
+    def test_frame_seq_odd_numbers_below_8(self):
+        tmp_subdir_path = self.make_subdir_with_sequence(TEST_DIR_PATH, "x", [1, 3, 5, 7], 4, "exr")
+        files = tmp_subdir_path.glob('*.exr')
+        self.assertEqual(4, len(list(files)))
+        self.assertTrue(Path(tmp_subdir_path / 'x.0001.exr').exists())
+        self.assertTrue(Path(tmp_subdir_path / 'x.0003.exr').exists())
+        self.assertTrue(Path(tmp_subdir_path / 'x.0005.exr').exists())
+        self.assertTrue(Path(tmp_subdir_path / 'x.0007.exr').exists())
 
 
 if __name__ == '__main__':
