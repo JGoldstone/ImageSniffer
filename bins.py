@@ -63,7 +63,9 @@ def lerp(x, min_domain, max_domain, min_range, max_range):
 
 class LogBins:
 
-    def __init__(self, log_max, log_min, num_bins):
+    def __init__(self, log_max, log_min, num_bins=None):
+        if num_bins is None:
+            num_bins = log_max - log_min
         self.log_max = log_max
         self.log_min = log_min
         self.num_underflowed = 0

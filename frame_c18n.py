@@ -38,27 +38,8 @@ class FrameC18n:
         img = self._image_input.read_image()
         ixs = ImageIndices(img)
         self._overall_registers.tally(img, ixs)
-        has_zero_red = img[:, :, 0] == 0
-        has_zero_green = img[:, :, 1] == 0
-        has_zero_blue = img[:, :, 2] == 0
-        has_perfect_black = has_zero_red & has_zero_green & has_zero_blue
-        self.perfect_black_count = np.sum(has_perfect_black)
-        has_neg_red = img[:, :, 0] < 0
-        has_neg_green = img[:, :, 1] < 0
-        has_neg_blue = img[:, :, 2] < 0
-        neg_red_count = np.sum(has_neg_red)
-        # if neg_red_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_red, "red")
-        neg_green_count = np.sum(has_neg_green)
-        # if neg_green_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_green, "green")
-        neg_blue_count = np.sum(has_neg_blue)
-        # if neg_blue_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_blue, "blue")
-        if neg_red_count > 0 or neg_green_count > 0 or neg_blue_count > 0:
-            # self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
-            self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)
-            self._add_to_octants(img, has_neg_red, has_neg_green, has_neg_blue)
+        for octant in self.octants:
+            octant.tally(img, ixs)
 
     def __str__(self):
         desc = []

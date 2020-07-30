@@ -31,7 +31,26 @@ __all__ = [
 
 class Octant:
     """
+    Class to hold spatial and statistical distribution of pixel values in a Cartesian octant.
 
+    Parameters
+    ----------
+    img_spec : OpenImageIO ImageSpec
+        Describes the image to be analyzed
+    octant_key : tuple of booleans
+        Indicates whether an octant axis represents, in the space of pixel values, distance
+        along the negative extent of that axis. (All octant data is stored with spatial
+        and statistical data transformed to all-positive values; for the spatial data, the
+        _to_first_octant_scalars attribute provides for transformatipon back to the original
+        coordinate system.
+    most_neg : int
+        Base-10 exponent of the largest negative value considered to not be 'overflow'. See
+        documentation of the LogBins class for the gory details.
+    least_neg : int
+        Base-10 exponent of the tinyest negative value considered to not be 'underflow'. See
+        documentaionm of the LogBinds class for the gory details.
+    num_bins : int
+        Number of bins into which pixel values will be mapped
     """
 
     @staticmethod

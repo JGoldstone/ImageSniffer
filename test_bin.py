@@ -1,11 +1,11 @@
 import unittest
 
 from sys import float_info
-from bins import lerp, LogBin
+from bins import lerp, LogBins
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
 
-# imagine if you will LogBin(-4, 2, 7)
+# imagine if you will LogBins(-4, 2, 7)
 TEST_LERP_DOMAIN_LOW = -4
 TEST_LERP_DOMAIN_HIGH = 2
 TEST_LERP_RANGE_LOW = 0
@@ -38,7 +38,7 @@ class MyTestCase(unittest.TestCase):
         self.assertGreater(ix_too_high, TEST_LERP_RANGE_HIGH)
 
     def test_bin_ctor(self):
-        test_bin = LogBin(-5, 2, 30)
+        test_bin = LogBins(-5, 2, 30)
         self.assertEqual(-5, test_bin.log_max)
         self.assertEqual(2, test_bin.log_min)
         self.assertEqual(0, test_bin.num_overflowed)
@@ -55,7 +55,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(30, len(test_bin._bins))
 
     # the bins:
-    # test_bin = LogBin(2, -4, 8)
+    # test_bin = LogBins(2, -4, 8)
     # negate the exposure value and take its base 10 log
     # overflow if l_ev > 2
     # add to _bins[0] if 10e+1 < l_ev <= 10e+2 [+2, +1)
@@ -70,7 +70,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_binning(self):
         our_epsilon = 0.000000001
-        test_bin = LogBin(2, -6, 8)
+        test_bin = LogBins(2, -6, 8)
         test_bin.add_entry(100.0+our_epsilon)
         self.assertEqual(1, test_bin.num_overflowed)
         # 3 for bin 0, 10e2 >= x > 10e1
