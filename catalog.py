@@ -17,7 +17,8 @@ import json
 
 import pandas as pd
 
-from fileseq import findSequencesOnDisk
+from subprocess import run
+from fileseq import findSequencesOnDisk, FrameSet
 
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
@@ -31,21 +32,23 @@ __all__ = [
     'Catalog'
 ]
 
-USABLE_IMAGE_SUFFIXES = ['.ari', '.exr', '.mxf', '.mov', '.dpx']
+CLIP_SUFFIXES = {'.mov', 'mxf'}
+IMAGE_SUFFIXES = {'.dpx', 'exr', '.ari'}
 # TODO really should check for context for these ($HOME for first two, $HOME/Library for last two)
-ROOT_DIRS_TO_SKIP = ['Applications', 'Clouds', 'Desktop', 'Documents', 'Downloads', 'Library',
-                     'Photos', 'Public', 'PyCharmProjects', 'VisualStudioCode', 'Xcode',
+ROOT_DIRS_TO_SKIP = ['Applications', 'Clean', 'Clouds', 'Desktop', 'Documents', 'Downloads', 'Installers', 'Library',
+                     'old_installers', 'Photos', 'Public', 'PyCharmProjects', 'VisualStudioCode', 'Xcode',
                      'repos', 'Music', 'bin', 'clones', 'lib', 'repos', 'vms']
 
 SUFFIX_COL = 'suffix'
 # COLORSPACE_COL = 'colorspace'
 DIR_PATH_COL = 'dir_path'
 NAME_COL = 'name'
-# SIZE_COL = 'size'
+SIZE_COL = 'size'
 SEQ_FRAME_WIDTH_COL = 'seq_frame_width'
 START_COL = 'start_frame'
 END_COL = 'end_frame'
 INC_COL = 'frame_inc'
+FIRST_FRAME_PATH_COL = 'first_frame_path'
 
 
 # MAXFALL_COL = 'max_FALL'
@@ -139,6 +142,30 @@ class Catalog:
             for subdir_root in sorted(self._subdir_roots):
                 print(f"\t{subdir_root}")
 
+    def _get_actual_path_and_size(self, fileseq):
+        suffix = fileseq.extension().lstrip('.')
+        if suffix in ['mov', 'mxf']:
+            clip_path = fileseq.frame(fileseq.start())
+            return clip_path, Path(clip_path).stat().st_size
+        if suffix in ['ari', 'arx', 'dpx']:
+            if fileseq.zfill() == 0:
+                unique_path = fileseq.frame(fileseq.start())
+                return unique_path, Path(unique_path).stat().st_size
+            else:
+                frame_set = fileseq.frameSet()
+                paths = [fileseq[idx] for idx, fr in enumerate(fileseq.frameSet())]
+                seq_size = 0
+                for path in paths:
+                    seq_size += Path(path).stat().st_size
+                return fileseq.frame(frame_set.start()), seq_size
+
+    def _get_colorspace_and_ei(self, path):
+        completed_process = run(['ARRIMetaExtract_CMD', '-i', path, '-q', 'Target Color Space, Exposure Index ASA',
+                                '-r', 'first'], capture_output=True)
+        if completed_process.returncode == 0:
+            for line_num, text in enumerate(completed_process.stdout):
+                print(f"line {line_num + 1}: `{text}'")
+
     def add_image_entry(self, fileseq):
         """
 
@@ -148,18 +175,21 @@ class Catalog:
         """
         suffix = fileseq.extension().lstrip('.')
         dir_path = fileseq.dirname().rstrip('/')
-        name = fileseq.basename()
+        name = fileseq.basename().rstrip('.')
         start = fileseq.start()
         end = fileseq.end()
         inc = 1
         seq_frame_width = len(fileseq.padding())
+        first_frame_path, size = self._get_actual_path_and_size(fileseq)
+        size = size // (1000 * 1000)
         if self._db is None:
-            self._db = pd.DataFrame(columns=[SUFFIX_COL, DIR_PATH_COL, NAME_COL, SEQ_FRAME_WIDTH_COL, START_COL, END_COL, INC_COL])
-        print('first entry!')
+            self._db = pd.DataFrame(columns=[SUFFIX_COL, DIR_PATH_COL, NAME_COL, SEQ_FRAME_WIDTH_COL, START_COL,
+                                             END_COL, INC_COL, SIZE_COL, FIRST_FRAME_PATH_COL])
         entry = {SUFFIX_COL: suffix, DIR_PATH_COL: dir_path, NAME_COL: name, SEQ_FRAME_WIDTH_COL: seq_frame_width,
-                 START_COL: start, END_COL: end, INC_COL: inc}
+                 START_COL: start, END_COL: end, INC_COL: inc, SIZE_COL: size,
+                 FIRST_FRAME_PATH_COL: first_frame_path}
+        print(f"size: {size:7} MB, path {first_frame_path}")
         self._db = self._db.append(entry, ignore_index=True)
-        print(f"len(self._db) is {len(self._db)}")
 
     def register_content(self, dir_path):
         path = Path(dir_path)
@@ -182,7 +212,7 @@ class Catalog:
             for seq in seqs:
                 # print(seq)
                 suffix = seq.extension()
-                if suffix in USABLE_IMAGE_SUFFIXES:
+                if suffix in CLIP_SUFFIXES or suffix in IMAGE_SUFFIXES:
                     self._census_by_suffix(suffix)
                     seq_dirname = seq.dirname()
                     if seq_dirname.rstrip('/') != dir_path.rstrip('/'):
