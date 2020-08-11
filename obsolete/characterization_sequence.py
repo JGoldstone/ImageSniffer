@@ -7,9 +7,8 @@ Class collecting image sequencing information, chacaterizations thereof, and way
 
 """
 
-from pathlib import Path
-from image_characterization import ImageCharacterization
-from image_sequence import ImageSequence
+from obsolete.image_characterization import ImageCharacterization
+from obsolete.image_sequence import ImageSequence
 
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'

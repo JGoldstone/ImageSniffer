@@ -2,7 +2,7 @@ import unittest
 import uuid
 from pathlib import Path
 from typing import Iterable
-from image_sequence import ImageSequence, _contiguous_ranges
+from obsolete.image_sequence import ImageSequence, _contiguous_ranges
 import numpy as np
 
 TEST_DIR_PATH = f"/tmp/py_unit_{uuid.uuid1()}"

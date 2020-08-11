@@ -1,8 +1,8 @@
 import unittest
 
-from image_sequence import ImageSequence
+from obsolete.image_sequence import ImageSequence
 
-from characterization_sequence import CharacterizationSequence
+from obsolete.characterization_sequence import CharacterizationSequence
 
 HOT_DIR = "/Users/jgoldstone/Content/not_secret_content/arri/bur/tfe/aces/vwg_gm/balloon+2XL5-C_demo_mode_test/derived/seqs/A003R3VC/A003C003_120101_cropped"
 HOT_FILE_NAME = "A003C003_120101_cropped"
