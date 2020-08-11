@@ -13,6 +13,7 @@ colour-science = { git = 'https://github.com/jgoldstone/colour.git@develop', edi
 # openimageio = { version = "*" }
 jupyterlab = "*"
 pandas = "*"
+fileseq = "*"
 
 [requires]
 python_version = "3.8"
