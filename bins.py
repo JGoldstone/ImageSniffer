@@ -52,9 +52,8 @@ __maintainer__ = 'Joseph Goldstone'
 __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
-# TODO find out if class methods would show up in __all__
 __all__ = [
-    'LogBins'
+    'lerp', 'LogBins'
 ]
 
 def lerp(x, min_domain, max_domain, min_range, max_range):
