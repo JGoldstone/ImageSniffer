@@ -67,7 +67,7 @@ class Octant:
         self._octant_key = octant_key
         self.to_first_octant_scalars = np.diag([-1 if e else 1 for e in octant_key])
         self.cubelets = np.array((num_bins,) * 3, dtype=np.uint)
-        self._registers = Registers(img_spec.nchannels)
+        self._registers = Registers(img_spec)
         self._bins = [LogBins(most_neg, least_neg, num_bins)] * len(octant_key)
 
     def _pixels_in_octant(self, ixs):
@@ -76,10 +76,10 @@ class Octant:
             ix = ix and channel_ix if self._octant_key[channel] else not channel_ix
         return ix
 
-    def _update_bins_and_cubelets(self, img, ixs):
+    def _update_bins_and_cubelets(self, img_array, ixs):
         img_ix_array = self._pixels_in_octant(ixs)
         for img_ix in np.argwhere(img_ix_array):
-            first_octant_pixel = img[tuple(img_ix)] * self.to_first_octant_scalars
+            first_octant_pixel = img_array[tuple(img_ix)] * self.to_first_octant_scalars
             cube_ix = []
             for i in range(self._img_spec.nchannels):
                 bin_ix = self._bins[i].add_entry(first_octant_pixel[i])
@@ -88,6 +88,6 @@ class Octant:
             if len(cube_ix) == self._img_spec.nchannels:
                 self.cubelets[tuple(cube_ix)] += 1
 
-    def tally(self, img, ixs):
-        self._update_bins_and_cubelets(img, ixs)
-        self._registers.tally(img, ixs)
+    def tally(self, img_array, ixs):
+        self._update_bins_and_cubelets(img_array, ixs)
+        self._registers.tally(img_array, ixs)

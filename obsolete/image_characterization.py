@@ -112,7 +112,7 @@ class ImageCharacterization:
 
     def _add_to_any_log_bins(self, img, has_neg_red, has_neg_green, has_neg_blue):
         has_any_neg = has_neg_red | has_neg_green | has_neg_blue
-        # for rgb in img[has_any_neg]:
+        # for rgb in img_array[has_any_neg]:
         #     self._any_bin.add_entry(rgb)
         for rgb in img[has_neg_red]:
             self._any_red_bin.add_entry(-rgb[0])
@@ -156,13 +156,13 @@ class ImageCharacterization:
         has_neg_blue = img[:, :, 2] < 0
         neg_red_count = np.sum(has_neg_red)
         # if neg_red_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_red, "red")
+        #     self._print_negative_pixel_components(img_array, has_neg_red, "red")
         neg_green_count = np.sum(has_neg_green)
         # if neg_green_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_green, "green")
+        #     self._print_negative_pixel_components(img_array, has_neg_green, "green")
         neg_blue_count = np.sum(has_neg_blue)
         # if neg_blue_count > 0:
-        #     self._print_negative_pixel_components(img, has_neg_blue, "blue")
+        #     self._print_negative_pixel_components(img_array, has_neg_blue, "blue")
         if neg_red_count > 0 or neg_green_count > 0 or neg_blue_count > 0:
             # self._add_to_any_counts(has_neg_red, has_neg_green, has_neg_blue)
             self._add_to_any_log_bins(img, has_neg_red, has_neg_green, has_neg_blue)

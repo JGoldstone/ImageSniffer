@@ -67,14 +67,14 @@ def _always_true(_):
 
 REGISTER_GROUP_ATTRIBUTES = OrderedDict([
     # group_name, ix_array_name, test, is_pure_counter
-    ('negative clip count', ('neg_clip', _within_epsilon(np.finfo(np.float16).min), True)),
-    ('biggest strictly negative value', ('neg', _biggest_strictly_negative(), False)),
-    ('tiniest strictly negative value', ('neg', _smallest_strictly_negative(), False)),
-    ('zero count', ('zero', _zero, True)),
-    ('black count', ('black', _always_true, True)),
-    ('tiniest strictly positive number', ('pos', _smallest_strictly_positive(), False)),
-    ('biggest strictly positive number', ('pos', _biggest_strictly_positive(), False)),
-    ('positive clip count', ('pos_clip', _within_epsilon(np.finfo(np.float16).max), True))
+    ('negative clip count', ('neg_clip', _within_epsilon(np.finfo(np.dtype('f16')).min), True, False)),
+    ('biggest strictly negative value', ('neg', _biggest_strictly_negative(), False, False)),
+    ('tiniest strictly negative value', ('neg', _smallest_strictly_negative(), False, False)),
+    ('zero count', ('zero', _zero, True, False)),
+    ('black count', ('black', _always_true, True, True)),
+    ('tiniest strictly positive number', ('pos', _smallest_strictly_positive(), False, False)),
+    ('biggest strictly positive number', ('pos', _biggest_strictly_positive(), False, False)),
+    ('positive clip count', ('pos_clip', _within_epsilon(np.finfo(np.dtype('f16')).max), True, False))
 ])
 
 
@@ -104,38 +104,51 @@ class Registers:
     tally
     """
 
+    @staticmethod
+    def _image_indices(img_array):
+        ixs = dict()
+        ixs['neg_clip'] = img_array == np.finfo(np.dtype('f16')).min
+        ixs['neg'] = img_array < 0
+        ixs['zero'] = img_array == 0
+        ixs['black'] = np.all(img_array == 0, axis=2)
+        ixs['pos'] = img_array > 0
+        ixs['pos_clip'] = img_array == np.finfo(np.dtype('f16')).max
+        return ixs
+
     # preserve the order of the register groups while creating sets of registers, one set member for each channel
     @staticmethod
     def _setup_registers(img_spec, registers):
-        for (group_name, ix_array_name, test, is_pure_counter) in REGISTER_GROUP_ATTRIBUTES:
-            for (channel_num, channel_name) in enumerate(img_spec.channelNames):
+        for (group_name, (ix_array_name, test, is_pure_counter, is_whole_pixel)) in REGISTER_GROUP_ATTRIBUTES.items():
+            for (channel_num, channel_name) in enumerate(img_spec.channelnames):
                 key = (group_name, channel_name)
-                registers[key] = SampleAndHoldRegister(channel_num, img_spec.nchannels, test, is_pure_counter)
+                registers[key] = SampleAndHoldRegister(channel_num, test, f"{group_name} ({channel_name})",
+                                                       count_only=is_pure_counter, whole_pixel=is_whole_pixel)
 
     def __init__(self, img_spec):
-        self._channel_names = img_spec.channelNames
+        self._channel_names = img_spec.channelnames
         self._registers = OrderedDict()
         self._setup_registers(img_spec, self._registers)
 
-    def tally(self, img, ix_arrays):
+    def tally(self, img_array, ix_arrays):
         """
         Parameters
         ----------
-        img : two-dimensional Numpy array of pixel values
+        img_array : two-dimensional Numpy array of pixel values
             Holds the image whose pixels will be sent to the various registers for sampling
         ix_arrays : dictionary of two-dimensional numpy array of boolean values
-            Matched in width and height to img, the values in the dictionary indicate whether
-            the corresponding pixel passed some test. In something of a modularity failure,
-            the keys of the ix_arrays are hard-coded here, but are also hard-coded in the
-            ImageIndices class. Sorry, rookie mistake.
+            Matched in width and height to img_array, the values in the dictionary indicating whether
+            the corresponding pixel passed some test.
         """
         for key in self._registers.keys():
             (group_name, _) = key
-            (ix_array_name, _, _) = REGISTER_GROUP_ATTRIBUTES[group_name]
+            (ix_array_name, _, _, whole_pixel) = REGISTER_GROUP_ATTRIBUTES[group_name]
             ix_array = ix_arrays[ix_array_name]
             pix_ix = np.argwhere(ix_array)
             register = self._registers[key]
-            for (row, col) in pix_ix:
-                # we dom't actually care, at this point, that OIIO's row 0 is the bottom orow of the frame, not the top
-                # also not particularly trying to optimize memory patterns; it's effectively a sparse array (sorta).
-                register.sample_pixel(img[row][col])
+            if pix_ix.size > 0:
+                if whole_pixel:
+                    for (row, col) in pix_ix:
+                        register.sample_pixel(img_array[row][col])
+                else:
+                    for (row, col, _) in pix_ix:
+                        register.sample_pixel(img_array[row][col])

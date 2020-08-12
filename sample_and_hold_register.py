@@ -17,8 +17,9 @@ __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
 __all__ = [
-    SampleAndHold Register, sample_pixel
+    'SampleAndHoldRegister'
 ]
+
 
 class SampleAndHoldRegister:
     """
@@ -65,12 +66,12 @@ class SampleAndHoldRegister:
     sample_pixel
 
     """
-    # channel needs to be int between 0 and num_channels - 1
-    def __init__(self, channel, test, desc, count_only=False):
+    def __init__(self, channel, test, desc, count_only=False, whole_pixel=False):
         self._channel = channel
         self._test = test
         self._desc = desc
         self._count_only = count_only
+        self._whole_pixel = whole_pixel
         self._sample_count = 0
         self._channel_value = None
         self._context_pixel = None
@@ -78,9 +79,13 @@ class SampleAndHoldRegister:
     def sample_pixel(self, pixel):
         candidate_channel_value = pixel[self._channel]
         if not self._count_only:
-            if not self._context_pixel or self._test(candidate_channel_value, self._channel_value):
-                self._channel_value = candidate_channel_value
-                self._context_pixel = pixel
+            if self._whole_pixel:
+                if not self._channel_value or not self._context_pixel.any() or self._test(pixel, self._context_pixel):
+                    self._context_pixel = pixel
+            else:
+                if not self._channel_value or not self._context_pixel.any() or self._test(candidate_channel_value, self._channel_value):
+                    self._channel_value = candidate_channel_value
+                    self._context_pixel = pixel
         self._sample_count += 1
 
     def __str__(self):
