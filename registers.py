@@ -72,8 +72,8 @@ REGISTER_GROUP_ATTRIBUTES = OrderedDict([
     ('tiniest strictly negative value', ('neg', _smallest_strictly_negative(), False, False)),
     ('zero count', ('zero', _zero, True, False)),
     ('black count', ('black', _always_true, True, True)),
-    ('tiniest strictly positive number', ('pos', _smallest_strictly_positive(), False, False)),
-    ('biggest strictly positive number', ('pos', _biggest_strictly_positive(), False, False)),
+    # ('tiniest strictly positive number', ('pos', _smallest_strictly_positive(), False, False)),
+    # ('biggest strictly positive number', ('pos', _biggest_strictly_positive(), False, False)),
     ('positive clip count', ('pos_clip', _within_epsilon(np.finfo(np.dtype('f16')).max), True, False))
 ])
 

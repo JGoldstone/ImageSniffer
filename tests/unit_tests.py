@@ -262,13 +262,13 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue((reference_pos      == ixs['pos'     ]).all())
         self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
 
-    # def test_frame_c18n(self):
-    #     images_dir = Path("../images")
-    #     print(f"current working directory is {Path.cwd()}")
-    #     test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
-    #     frame_c18n = FrameC18n(images_dir / test_image_name)
-    #     frame_c18n.tally()
-    #     print(frame_c18n)
+    def test_frame_c18n(self):
+        images_dir = Path("../images")
+        print(f"current working directory is {Path.cwd()}")
+        test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
+        frame_c18n = FrameC18n(images_dir / test_image_name)
+        frame_c18n.tally()
+        print(frame_c18n)
 
 
 if __name__ == '__main__':
