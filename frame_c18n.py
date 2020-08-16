@@ -42,9 +42,13 @@ class FrameC18n:
     def tally(self):
         img_array = self._image_input.read_image()
         ixs = Registers._image_indices(img_array=img_array)
+        print(f"image indices computed")
         self._overall_registers.tally(img_array, ixs)
+        print(f"overall registers tallied")
+        print(f"starting octant tallies")
         for octant in self.octants.values():
             octant.tally(img_array, ixs)
+        print(f"ending octant tallies")
 
     def __str__(self):
         desc = []

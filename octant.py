@@ -81,17 +81,21 @@ class Octant:
 
     def _update_bins_and_cubelets(self, img_array, ixs):
         img_ix_array = self._pixels_in_octant(ixs)
-        for img_ix in np.argwhere(img_ix_array):
+        img_ixs = np.argwhere(img_ix_array)
+        print(f"octant {self._octant_key} has {len(img_ixs)} pixels")
+        for img_ix in img_ixs:
             first_octant_pixel = img_array[tuple(img_ix)] * self.to_first_octant_scalars
             cube_ix = []
-            for i in range(self._img_spec.nchannels):
-                channel_value = first_octant_pixel[i]
-                bin_ix = self._bins[i].add_entry(channel_value)
-                if bin_ix:  # do nothing if value was too tiny or too big
-                    cube_ix.append(bin_ix)
+            # for i in range(self._img_spec.nchannels):
+            #     channel_value = first_octant_pixel[i]
+            #     bin_ix = self._bins[i].add_entry(channel_value)
+            #     if bin_ix:  # do nothing if value was too tiny or too big
+            #         cube_ix.append(bin_ix)
             if len(cube_ix) == self._img_spec.nchannels:
                 self.cubelets[tuple(cube_ix)] += 1
 
     def tally(self, img_array, ixs):
+        print(f"updating bins and cubelets for octant {self._octant_key}")
         self._update_bins_and_cubelets(img_array, ixs)
+        print(f"updating registers for octant {self._octant_key}")
         self._registers.tally(img_array, ixs)
