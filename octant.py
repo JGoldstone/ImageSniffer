@@ -9,11 +9,10 @@ values in the octant.
 
 
 """
-
+from math import log
 import numpy as np
 
 from registers import Registers
-from bins import LogBins
 
 # TODO generalize to support orthants
 
@@ -43,10 +42,10 @@ class Octant:
         and statistical data transformed to all-positive values; for the spatial data, the
         _to_first_octant_scalars attribute provides for transformatipon back to the original
         coordinate system.
-    most_neg : int
+    min_exp : int
         Base-10 exponent of the largest negative value considered to not be 'overflow'. See
         documentation of the LogBins class for the gory details.
-    least_neg : int
+    max_exp : int
         Base-10 exponent of the tinyest negative value considered to not be 'underflow'. See
         documentaionm of the LogBinds class for the gory details.
     num_bins : int
@@ -62,40 +61,40 @@ class Octant:
                     keys.append((has_red_neg, has_green_neg, has_blue_neg))
         return keys
 
-    def __init__(self, img_spec, octant_key, most_neg, least_neg, num_bins):
+    def _ix_for_octant(self, img_array):
+        ix = np.full((self._img_spec.height, self._img_spec.width), True, dtype=np.bool)
+        for chan, axis_negative_in_octant in enumerate(self._octant_key):
+            chan_in_octant_ix = img_array[..., chan] < 0 if axis_negative_in_octant else img_array[..., chan] >= 0
+            np.logical_and(ix, chan_in_octant_ix, ix)
+        return ix
+
+    @staticmethod
+    def _log10_edges(min_exp, max_exp, num_bins=None):
+        if not num_bins:
+            num_bins = 1 + max_exp - min_exp
+        edge = np.exp(np.linspace(min_exp, max_exp, num_bins, dtype=np.dtype('f16')) * log(10))
+        edge = [0] + edge
+        edge[-1] *= (1 + np.finfo('f16').eps)  # make this a closed interval at both ends
+        edge += np.finfo('f16').max
+        return edge
+
+    def __init__(self, img_spec, octant_key, min_exp, max_exp, num_bins):
         self._img_spec = img_spec
         self._octant_key = octant_key
         self.to_first_octant_scalars = [-1 if e else 1 for e in octant_key]
-        self.cubelets = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
-        self._registers = Registers(img_spec)
-        self._bins = [LogBins(most_neg, least_neg, num_bins)] * len(octant_key)
+        self._edge = self._log10_edges(min_exp, max_exp, num_bins=num_bins)
+        self.hist3d = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
+        self._registers = Registers(f"registers for octant {self._octant_key}", self._img_spec.channelnames)
 
-    def _pixels_in_octant(self, ixs):
-        ix = np.full([self._img_spec.height, self._img_spec.width], True)
-        for channel in range(ixs['neg'].shape[2]):
-            cx = ixs['neg'][..., channel]
-            if not self._octant_key[channel]:
-                np.logical_not(cx, cx)
-            np.logical_and(ix, cx, ix)
-        return ix
+    def _bin(self, img_array, octant_ix):
+        bins = [self._edge] * 3
+        img_in_octant = img_array[octant_ix]
+        self.hist3d, _ = np.histogramdd(img_in_octant, bins)
 
-    def _update_bins_and_cubelets(self, img_array, ixs):
-        img_ix_array = self._pixels_in_octant(ixs)
-        img_ixs = np.argwhere(img_ix_array)
-        print(f"octant {self._octant_key} has {len(img_ixs)} pixels")
-        for img_ix in img_ixs:
-            first_octant_pixel = img_array[tuple(img_ix)] * self.to_first_octant_scalars
-            cube_ix = []
-            # for i in range(self._img_spec.nchannels):
-            #     channel_value = first_octant_pixel[i]
-            #     bin_ix = self._bins[i].add_entry(channel_value)
-            #     if bin_ix:  # do nothing if value was too tiny or too big
-            #         cube_ix.append(bin_ix)
-            if len(cube_ix) == self._img_spec.nchannels:
-                self.cubelets[tuple(cube_ix)] += 1
-
-    def tally(self, img_array, ixs):
-        print(f"updating bins and cubelets for octant {self._octant_key}")
-        self._update_bins_and_cubelets(img_array, ixs)
-        print(f"updating registers for octant {self._octant_key}")
-        self._registers.tally(img_array, ixs)
+    def tally(self, img_array):
+        octant_ix = self._ix_for_octant(img_array)
+        print(f"binning octant {self._octant_key}")
+        self._bin(img_array, octant_ix)
+        print(f"done binning octant {self._octant_key}, setting up registers")
+        self._registers.tally(img_array, octant_ix)
+        print(f"done setting up registers for {self._octant_key}")

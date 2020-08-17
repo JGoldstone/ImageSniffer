@@ -7,8 +7,6 @@ Defines a class that collects information on the distribution of tristimulus
  samples in R3, both as a whole, and by octant.
 
 """
-import numpy as np
-
 import OpenImageIO as oiio
 from OpenImageIO import ImageInput
 
@@ -27,27 +25,27 @@ class FrameC18n:
         if self._image_input is None:
             # TODO check that the problem *is* actually the file is not there
             raise FileNotFoundError(f"could not read image `{self._path}': {oiio.geterror()}")
-        spec = self._image_input.spec()
-        roi = spec.roi
+        roi = self._image_input.spec().roi
         # n.b. ROI xend and yend are range-style 'one beyond the end' values
         self._x = roi.xbegin
         self._width = roi.xend - roi.xbegin
         self._y = roi.ybegin
         self._height = roi.yend - roi.ybegin
-        self._overall_registers = Registers(spec)
+        self._overall_registers = Registers(f"rewgisters for entire image", self._image_input.spec)
         self.octants = {}
         for octant in Octant.octant_keys():
-            self.octants[octant] = Octant(spec, octant, most_neg, least_neg, num_bins)
+            self.octants[octant] = Octant(self._image_input.spec(), octant, most_neg, least_neg, num_bins)
 
     def tally(self):
         img_array = self._image_input.read_image()
-        ixs = Registers._image_indices(img_array=img_array)
-        print(f"image indices computed")
+        ixs = Registers("Overall image statistics", self._image_input.spec().channel_names)
+        print(f"starting overall image tally")
         self._overall_registers.tally(img_array, ixs)
-        print(f"overall registers tallied")
+        print(f"ending overall image tally")
         print(f"starting octant tallies")
         for octant in self.octants.values():
-            octant.tally(img_array, ixs)
+            print(f"starting tally for octant {octant}:")
+            octant.tally(img_array)
         print(f"ending octant tallies")
 
     def __str__(self):

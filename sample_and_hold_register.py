@@ -17,8 +17,10 @@ __email__ = 'jgoldstone@arri.com'
 __status__ = 'Experimental'
 
 __all__ = [
-    'SampleAndHoldRegister'
+    'Counter', 'Latch'
 ]
+
+import numpy as np
 
 
 class SampleAndHoldRegister:
@@ -93,3 +95,4 @@ class SampleAndHoldRegister:
             return f"{self._desc}: {self._sample_count} occurrences seen"
         else:
             return f"{self._desc}: {self._channel_value} in channel {self._channel} of value [{self._context_pixel}]"
+
