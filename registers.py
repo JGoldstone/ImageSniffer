@@ -5,18 +5,17 @@ Data structure to hold some simple statistics about tristimulus values
 
 Defines a class that provides data structures and methods for simple analysis
 of the samples corresponding to, e.g., the pixels of an image. Such statistics include:
-- component-wise maxima for each channel, where the maxima for a channel retains the
-  context (that is, the values of all the other channels accompanying it when it was
-  seen to be the maximum for that channel).
--- component-wise largest strictly positive values for each channel
--- component-wise smallest strictly positive values for each channel
--- component-wise smallest strictly negative values for each channel
--- component-wise largest strictly negative values for each channel
-- component-wise count of occurrences of a channel having a zero value
-- component-wise count of occurrences of a channel having the maximum possible value
-  within the range a half-float can represent
-- component-wise count of occurrences of a channel having the minimum possible value
-  within the range a half-float can represent
+- multi-channel counters:
+-- count of occurrences of all channel values having a zero value (i.e. pixel is black)
+- single-channel counters:
+-- component-wise count of negative-clip values
+-- component-wise count of zero values
+-- component-wise count of positive-clip values
+- latches (registers of peak values):
+-- component-wise largest-magnitude strictly negative values
+-- component-wise smallest-magnitude strictly negative values for each channel
+-- component-wise smallest-magnitude strictly positive values for each channel
+-- component-wise largest-magnitude strictly positive values for each channel
 
 """
 
@@ -34,20 +33,20 @@ __all__ = [
     'Registers'
 ]
 
-def is_black_pixel():
-    return lambda pixel: pixel[0] == 0 & pixel[1] == 0 & pixel[2] == 0
+def is_black_pixel(pixel):
+    return pixel[0] == 0 & pixel[1] == 0 & pixel[2] == 0
 
 
-def is_zero_component():
-    return lambda component: component == 0
+def is_negative_clip_component(component):
+    return component == np.finfo(np.dtype('f16')).min
 
 
-def is_negative_clip_component():
-    return lambda component: component == np.finfo(np.dtype('f16')).min
+def is_zero_component(component):
+    return component == 0
 
 
-def is_positive_clip_component():
-    return lambda component: component == np.finfo(np.dtype('f16')).max
+def is_positive_clip_component(component):
+    return component == np.finfo(np.dtype('f16')).max
 
 
 def biggest_strictly_negative_non_clipping_value(array):
@@ -66,7 +65,7 @@ def biggest_strictly_positive_non_clipping_value(array):
     return array[array > 0 & array < np.finfo(np.dtype('f16')).max].max()
 
 
-class Counter:
+class Counter(object):
     """Counter holding the number of pixels in an image for which a provided test function returned True
     """
 
@@ -78,7 +77,7 @@ class Counter:
         desc : str
             Description of what is being counted
         pred : function
-            Function taking an image, a masking array, and a predicate
+            Function taking a single argument, representing either a pixel or a pixel component
         """
         self.desc = desc
         self._pred = pred
@@ -94,7 +93,7 @@ class Counter:
         print(f"{self.desc}: {self.count}")
 
 
-class Latch:
+class Latch(object):
     """Register holding value representing the extrema of some function
     """
 
@@ -104,11 +103,11 @@ class Latch:
         Parameters
         ----------
         desc : str
-            description of value sought (e.g. 'tiniest observed strictly positive
+            description of value sought (e.g. 'tiniest observed strictly positive value')
         func : function
-            function returning array index of extreme value
+            function returning extreme of some channel value across an image
         """
-        self._desc = desc
+        self.desc = desc
         self._func = func
         self.latched_value = None
 
@@ -116,10 +115,10 @@ class Latch:
         self.latched_value = image[self._func(image, mask, channel)][channel]
 
     def __str__(self):
-        print(f"{self._desc}: {self.latched_value}")
+        print(f"{self.desc}: {self.latched_value}")
 
 
-class Registers:
+class Registers(object):
     """
     Groups sample-and-hold registers, where the groups are identified by name in the
     REGISTER_GROUP_ATTRIBUTES module-scope global variable, and there are as many
@@ -175,7 +174,7 @@ class Registers:
         for desc, func in [('biggest strictly negative value', biggest_strictly_negative_non_clipping_value),
                            ('tiniest strictly negative value', tiniest_strictly_negative_non_clipping_value),
                            ('tiniest strictly positive value', tiniest_strictly_positive_non_clipping_value),
-                           ('tiniest strictly positive value', biggest_strictly_negative_non_clipping_value)]:
+                           ('biggest strictly positive value', biggest_strictly_negative_non_clipping_value)]:
             for channel_name in channel_names:
                 latch_name = f"{desc} ({channel_name})"
                 latches[latch_name] = Latch(desc, func)
@@ -187,8 +186,8 @@ class Registers:
         self._channel_counters = OrderedDict()
         self._latches = OrderedDict()
         self._setup_pixel_counters(self._pixel_counters)
-        self._setup_channel_counters(self._channel_counters)
-        self._setup_channel_latches(self._latches)
+        self._setup_channel_counters(self._channel_names, self._channel_counters)
+        self._setup_channel_latches(self._channel_names, self._latches)
 
     def tally(self, img_array, ix_array):
         """
@@ -200,12 +199,12 @@ class Registers:
             Matched in width and height to img_array, the values in the dictionary indicating whether
             the corresponding pixel passed some test.
         """
-        for counter in self._pixel_counters:
+        for counter in self._pixel_counters.values():
             counter.tally_pixels(img_array, ix_array)
-        for counter in self._channel_counters:
+        for counter in self._channel_counters.values():
             for channel in self._channel_names:
                 counter.tally_channel_values(img_array, ix_array, channel)
-        for latch in self._latches:
+        for latch in self._latches.items.values():
             for channel in self._channel_names:
                 latch.latch_max_channel_value(img_array, ix_array, channel)
 

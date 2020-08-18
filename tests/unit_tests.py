@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import OpenImageIO as oiio
 
-from bins import lerp, LogBins
+from obsolete.bins import lerp, LogBins
 from registers import Registers
 from frame_c18n import FrameC18n
 
@@ -160,107 +160,107 @@ class MyTestCase(unittest.TestCase):
         #         buf.setpixel(col, row, img_array[row][col])
         return img_array, img_spec
 
-    def test_register_ctor(self):
-        ref_img_array, ref_img_spec = self.create_test_img_array()
-        reference_neg_clip = np.array([
-             [[False, False, False],
-              [True, False, False]],
-             [[True, False, False],
-              [False, False, False]],
-             [[False, False, False],
-              [False, False, True]],
-             [[False, False, True],
-              [False, False, False]],
-             [[False, False, False],
-              [False, True, False]],
-             [[False, True, False],
-              [False, False, False]]
-        ])
-        reference_neg = np.array([
-             [[False, False, False],
-              [True, True, False]],
-             [[True, False, False],
-              [False, False, False]],
-             [[False, False, False],
-              [True, False, True]],
-             [[False, False, True],
-              [False, False, False]],
-             [[False, False, False],
-              [False, True, True]],
-             [[False, True, False],
-              [False, False, False]]
-             ])
-
-        reference_zero = np.array([
-             [[True, False, True],
-              [False, False, False]],
-             [[False, False, False],
-              [True, True, True]],
-             [[False, True, True],
-              [False, False, False]],
-             [[False, False, False],
-              [True, True, True]],
-             [[True, True, False],
-              [False, False, False]],
-             [[False, False, False],
-              [True, True, True]]
-        ])
-
-        reference_black = np.array([
-             [False,
-              False],
-             [False,
-              True],
-             [False,
-              False],
-             [False,
-              True],
-             [False,
-              False],
-             [False,
-              True]
-        ])
-
-        reference_pos = np.array([
-             [[False, True, False],
-              [False, False, True]],
-             [[False, True, True],
-              [False, False, False]],
-             [[True, False, False],
-              [False, True, False]],
-             [[True, True, False],
-              [False, False, False]],
-             [[False, False, True],
-              [True, False, False]],
-             [[True, False, True],
-              [False, False, False]]
-        ])
-
-        reference_pos_clip = np.array([
-             [[False, True, False],
-              [False, False, True]],
-             [[False, False, True],
-              [False, False, False]],
-             [[True, False, False],
-              [False, True, False]],
-             [[False, True, False],
-              [False, False, False]],
-             [[False, False, True],
-              [True, False, False]],
-             [[True, False, False],
-              [False, False, False]]
-        ])
-        ixs = Registers._image_indices(ref_img_array)
-        registers = Registers(ref_img_spec)
-        registers.tally(ref_img_array, ixs)
-        # neg_clips_match = (reference_neg_clip == ixs['neg_clip']).all()
-        # self.assertTrue(neg_clips_match)
-        self.assertTrue((reference_neg_clip == ixs['neg_clip']).all())
-        self.assertTrue((reference_neg      == ixs['neg'     ]).all())
-        self.assertTrue((reference_zero     == ixs['zero'    ]).all())
-        self.assertTrue((reference_black    == ixs['black'   ]).all())
-        self.assertTrue((reference_pos      == ixs['pos'     ]).all())
-        self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
+    # def test_register_ctor(self):
+    #     ref_img_array, ref_img_spec = self.create_test_img_array()
+    #     reference_neg_clip = np.array([
+    #          [[False, False, False],
+    #           [True, False, False]],
+    #          [[True, False, False],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [False, False, True]],
+    #          [[False, False, True],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [False, True, False]],
+    #          [[False, True, False],
+    #           [False, False, False]]
+    #     ])
+    #     reference_neg = np.array([
+    #          [[False, False, False],
+    #           [True, True, False]],
+    #          [[True, False, False],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [True, False, True]],
+    #          [[False, False, True],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [False, True, True]],
+    #          [[False, True, False],
+    #           [False, False, False]]
+    #          ])
+    #
+    #     reference_zero = np.array([
+    #          [[True, False, True],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [True, True, True]],
+    #          [[False, True, True],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [True, True, True]],
+    #          [[True, True, False],
+    #           [False, False, False]],
+    #          [[False, False, False],
+    #           [True, True, True]]
+    #     ])
+    #
+    #     reference_black = np.array([
+    #          [False,
+    #           False],
+    #          [False,
+    #           True],
+    #          [False,
+    #           False],
+    #          [False,
+    #           True],
+    #          [False,
+    #           False],
+    #          [False,
+    #           True]
+    #     ])
+    #
+    #     reference_pos = np.array([
+    #          [[False, True, False],
+    #           [False, False, True]],
+    #          [[False, True, True],
+    #           [False, False, False]],
+    #          [[True, False, False],
+    #           [False, True, False]],
+    #          [[True, True, False],
+    #           [False, False, False]],
+    #          [[False, False, True],
+    #           [True, False, False]],
+    #          [[True, False, True],
+    #           [False, False, False]]
+    #     ])
+    #
+    #     reference_pos_clip = np.array([
+    #          [[False, True, False],
+    #           [False, False, True]],
+    #          [[False, False, True],
+    #           [False, False, False]],
+    #          [[True, False, False],
+    #           [False, True, False]],
+    #          [[False, True, False],
+    #           [False, False, False]],
+    #          [[False, False, True],
+    #           [True, False, False]],
+    #          [[True, False, False],
+    #           [False, False, False]]
+    #     ])
+    #     ixs = Registers._image_indices(ref_img_array)
+    #     registers = Registers(ref_img_spec)
+    #     registers.tally(ref_img_array, ixs)
+    #     # neg_clips_match = (reference_neg_clip == ixs['neg_clip']).all()
+    #     # self.assertTrue(neg_clips_match)
+    #     self.assertTrue((reference_neg_clip == ixs['neg_clip']).all())
+    #     self.assertTrue((reference_neg      == ixs['neg'     ]).all())
+    #     self.assertTrue((reference_zero     == ixs['zero'    ]).all())
+    #     self.assertTrue((reference_black    == ixs['black'   ]).all())
+    #     self.assertTrue((reference_pos      == ixs['pos'     ]).all())
+    #     self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
 
     def test_frame_c18n(self):
         images_dir = Path("../images")

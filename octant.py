@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Octant:
+class Octant(object):
     """
     Class to hold spatial and statistical distribution of pixel values in a Cartesian octant.
 
@@ -81,7 +81,7 @@ class Octant:
     def __init__(self, img_spec, octant_key, min_exp, max_exp, num_bins):
         self._img_spec = img_spec
         self._octant_key = octant_key
-        self.to_first_octant_scalars = [-1 if e else 1 for e in octant_key]
+        self._to_first_octant_scalars = [-1 if e else 1 for e in octant_key]
         self._edge = self._log10_edges(min_exp, max_exp, num_bins=num_bins)
         self.hist3d = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
         self._registers = Registers(f"registers for octant {self._octant_key}", self._img_spec.channelnames)
@@ -89,6 +89,7 @@ class Octant:
     def _bin(self, img_array, octant_ix):
         bins = [self._edge] * 3
         img_in_octant = img_array[octant_ix]
+        img_in_octant *= self._to_first_octant_scalars
         self.hist3d, _ = np.histogramdd(img_in_octant, bins)
 
     def tally(self, img_array):
