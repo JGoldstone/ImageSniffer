@@ -34,11 +34,11 @@ __all__ = [
 ]
 
 def is_black_pixel(pixel):
-    return pixel[0] == 0 & pixel[1] == 0 & pixel[2] == 0
+    return np.all(pixel == 0, axis=-1)
 
 
 def is_negative_clip_component(component):
-    return component == np.finfo(np.dtype('f16')).min
+    return component == np.finfo(np.float16).min
 
 
 def is_zero_component(component):
@@ -46,23 +46,31 @@ def is_zero_component(component):
 
 
 def is_positive_clip_component(component):
-    return component == np.finfo(np.dtype('f16')).max
+    return component == np.finfo(np.float16).max
 
 
 def biggest_strictly_negative_non_clipping_value(array):
-    return array[array < 0 & array > np.finfo(np.dtype('f16')).min].min()
+    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.float16).min)]
+    if np.any(masked_array):
+        return masked_array.min()
 
 
 def tiniest_strictly_negative_non_clipping_value(array):
-    return array[array < 0 & array > np.finfo(np.dtype('f16')).min].max()
+    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.float16).min)]
+    if np.any(masked_array):
+        return masked_array.max()
 
 
 def tiniest_strictly_positive_non_clipping_value(array):
-    return array[array > 0 & array < np.finfo(np.dtype('f16')).max].min()
+    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.float16).max)]
+    if np.any(masked_array):
+        return masked_array.min()
 
 
 def biggest_strictly_positive_non_clipping_value(array):
-    return array[array > 0 & array < np.finfo(np.dtype('f16')).max].max()
+    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.float16).max)]
+    if np.any(masked_array):
+        return masked_array.max()
 
 
 class Counter(object):
@@ -112,7 +120,7 @@ class Latch(object):
         self.latched_value = None
 
     def latch_max_channel_value(self, image, mask, channel):
-        self.latched_value = image[self._func(image, mask, channel)][channel]
+        self.latched_value = self._func(image[mask][..., channel])
 
     def __str__(self):
         print(f"{self.desc}: {self.latched_value}")
@@ -154,6 +162,16 @@ class Registers(object):
     tally
     """
 
+    def __init__(self, desc, channel_names):
+        self._desc = desc
+        self._channel_names = channel_names
+        self._pixel_counters = OrderedDict()
+        self._channel_counters = OrderedDict()
+        self._latches = OrderedDict()
+        self._setup_pixel_counters(self._pixel_counters)
+        self._setup_channel_counters(self._channel_names, self._channel_counters)
+        self._setup_channel_latches(self._channel_names, self._latches)
+
     @staticmethod
     def _setup_pixel_counters(counters):
         for desc, func in [('black pixel count', is_black_pixel)]:
@@ -179,16 +197,6 @@ class Registers(object):
                 latch_name = f"{desc} ({channel_name})"
                 latches[latch_name] = Latch(desc, func)
 
-    def __init__(self, desc, channel_names):
-        self._desc = desc
-        self._channel_names = channel_names
-        self._pixel_counters = OrderedDict()
-        self._channel_counters = OrderedDict()
-        self._latches = OrderedDict()
-        self._setup_pixel_counters(self._pixel_counters)
-        self._setup_channel_counters(self._channel_names, self._channel_counters)
-        self._setup_channel_latches(self._channel_names, self._latches)
-
     def tally(self, img_array, ix_array):
         """
         Parameters
@@ -202,17 +210,20 @@ class Registers(object):
         for counter in self._pixel_counters.values():
             counter.tally_pixels(img_array, ix_array)
         for counter in self._channel_counters.values():
-            for channel in self._channel_names:
-                counter.tally_channel_values(img_array, ix_array, channel)
-        for latch in self._latches.items.values():
-            for channel in self._channel_names:
-                latch.latch_max_channel_value(img_array, ix_array, channel)
+            for i in range(len(self._channel_names)):
+                counter.tally_channel_values(img_array, ix_array, 0)
+        for latch in self._latches.values():
+            for i in range(len(self._channel_names)):
+                latch.latch_max_channel_value(img_array, ix_array, i)
 
     def __str__(self):
-        print(f"{self._desc}:")
-        for counter in self._pixel_counters:
-            print(counter)
-        for counter in self._channel_counters:
-            print(counter)
-        for latch in self._latches:
-            print(latch)
+        representation = f"{self._desc}:\n"
+
+        for counter in self._pixel_counters.values():
+            representation += f"{counter.desc}: {counter.count}\n"
+        for counter in self._channel_counters.values():
+            representation += f"{counter.desc}: {counter.count}\n"
+        for latch in self._latches.values():
+            representation += f"{latch.desc}: {latch.latched_value}\n"
+
+        return representation

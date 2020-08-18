@@ -33,7 +33,7 @@ class FrameC18n(object):
         self._width = roi.xend - roi.xbegin
         self._y = roi.ybegin
         self._height = roi.yend - roi.ybegin
-        self._overall_registers = Registers(f"rewgisters for entire image", self._image_input.spec().channelnames)
+        self._overall_registers = Registers(f"registers for entire image", self._image_input.spec().channelnames)
         self.octants = {}
         for octant in Octant.octant_keys():
             self.octants[octant] = Octant(self._image_input.spec(), octant, most_neg, least_neg, num_bins)
@@ -41,8 +41,7 @@ class FrameC18n(object):
     def tally(self):
         img_array = self._image_input.read_image()
         print(f"starting overall image tally")
-        self._overall_registers.tally(img_array, np.full((self._image_input.spec().height,
-                                                          self._image_input.spec().width), True))
+        self._overall_registers.tally(img_array, np.full(img_array.shape[0:2], True))
         print(f"ending overall image tally")
         print(f"starting octant tallies")
         for octant in self.octants.values():
