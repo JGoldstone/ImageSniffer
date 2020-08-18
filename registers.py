@@ -38,7 +38,7 @@ def is_black_pixel(pixel):
 
 
 def is_negative_clip_component(component):
-    return component == np.finfo(np.float16).min
+    return component == np.finfo(np.half).min
 
 
 def is_zero_component(component):
@@ -46,29 +46,29 @@ def is_zero_component(component):
 
 
 def is_positive_clip_component(component):
-    return component == np.finfo(np.float16).max
+    return component == np.finfo(np.half).max
 
 
 def biggest_strictly_negative_non_clipping_value(array):
-    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.float16).min)]
+    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.half).min)]
     if np.any(masked_array):
         return masked_array.min()
 
 
 def tiniest_strictly_negative_non_clipping_value(array):
-    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.float16).min)]
+    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.half).min)]
     if np.any(masked_array):
         return masked_array.max()
 
 
 def tiniest_strictly_positive_non_clipping_value(array):
-    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.float16).max)]
+    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.half).max)]
     if np.any(masked_array):
         return masked_array.min()
 
 
 def biggest_strictly_positive_non_clipping_value(array):
-    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.float16).max)]
+    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.half).max)]
     if np.any(masked_array):
         return masked_array.max()
 
@@ -211,7 +211,7 @@ class Registers(object):
             counter.tally_pixels(img_array, ix_array)
         for counter in self._channel_counters.values():
             for i in range(len(self._channel_names)):
-                counter.tally_channel_values(img_array, ix_array, 0)
+                counter.tally_channel_values(img_array, ix_array, i)
         for latch in self._latches.values():
             for i in range(len(self._channel_names)):
                 latch.latch_max_channel_value(img_array, ix_array, i)

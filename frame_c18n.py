@@ -41,7 +41,7 @@ class FrameC18n(object):
     def tally(self):
         img_array = self._image_input.read_image()
         print(f"starting overall image tally")
-        self._overall_registers.tally(img_array, np.full(img_array.shape[0:2], True))
+        self._overall_registers.tally(img_array, np.full(img_array.shape[0:2]))
         print(f"ending overall image tally")
         print(f"starting octant tallies")
         for octant in self.octants.values():
