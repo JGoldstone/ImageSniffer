@@ -3,7 +3,8 @@ import unittest
 import numpy as np
 import OpenImageIO as oiio
 
-from registers import is_black_pixel, strictly_negative_but_not_clipped_masked_array, \
+from registers import is_black_pixel, is_negative_clip_component, is_zero_component, is_positive_clip_component, \
+    strictly_negative_but_not_clipped_masked_array, \
     strictly_positive_but_not_clipped_masked_array, biggest_strictly_negative_non_clipping_value, \
     tiniest_strictly_negative_non_clipping_value, tiniest_strictly_positive_non_clipping_value, \
     biggest_strictly_positive_non_clipping_value
@@ -22,13 +23,38 @@ class MyTestCase(unittest.TestCase):
 
     def test_black_pixel_finder(self):
         img_array = np.array(np.arange(12)).reshape([2, 2, 3])
+        ref_no_blackness = [[False, False],
+                            [False, False]]
+        blackness = is_black_pixel(img_array)
+        self.assertTrue(np.all(ref_no_blackness == blackness))
         img_array[1][1] = [0, 0, 0]
-        ref_blackness = [[ False, False],
+        ref_blackness = [[False, False],
                          [False, True]]
         blackness = is_black_pixel(img_array)
         self.assertTrue(np.all(ref_blackness == blackness))
 
-    def create_test_img_array(self):
+    def test_negative_clip_component(self):
+        fluff = np.array([-2, -1, 0, 1, 2])
+        img_array = fluff
+        self.assertFalse(np.any(is_negative_clip_component(img_array)))
+        neg_clip = np.finfo(np.half).min
+        self.assertTrue(np.any(is_negative_clip_component(np.hstack([np.array([neg_clip]), fluff]))))
+
+    def test_is_zero_component(self):
+        fluff = np.array([-2, -1, 1, 2])
+        img_array = fluff
+        self.assertFalse(np.any(is_zero_component(img_array)))
+        self.assertTrue(np.any(is_zero_component(np.hstack([np.array([0]), fluff]))))
+
+    def test_positive_clip_component(self):
+        fluff = np.array([-2, -1, 0, 1, 2])
+        img_array = fluff
+        self.assertFalse(np.any(is_positive_clip_component(img_array)))
+        pos_clip = np.finfo(np.half).max
+        self.assertTrue(np.any(is_positive_clip_component(np.hstack([np.array([pos_clip]), fluff]))))
+
+    @staticmethod
+    def create_test_img_array():
         neg_clip = np.finfo(np.half).min
         neg_tiniest = -4 * np.finfo(np.half).tiny
         zero = 0.0
@@ -36,17 +62,17 @@ class MyTestCase(unittest.TestCase):
         pos_clip = np.finfo(np.half).max
         img_array = np.array([
             [[zero, pos_clip, zero],
-              [neg_clip, neg_tiniest, pos_clip]],
-             [[neg_clip, pos_tiniest, pos_clip],
-              [zero, zero, zero]],
-             [[pos_clip, zero, zero],
-              [neg_tiniest, pos_clip, neg_clip]],
-             [[pos_tiniest, pos_clip, neg_clip],
-              [zero, zero, zero]],
-             [[zero, zero, pos_clip],
-              [pos_clip, neg_clip, neg_tiniest]],
-             [[pos_clip, neg_clip, pos_tiniest],
-              [zero, zero, zero]]
+             [neg_clip, neg_tiniest, pos_clip]],
+            [[neg_clip, pos_tiniest, pos_clip],
+             [zero, zero, zero]],
+            [[pos_clip, zero, zero],
+             [neg_tiniest, pos_clip, neg_clip]],
+            [[pos_tiniest, pos_clip, neg_clip],
+             [zero, zero, zero]],
+            [[zero, zero, pos_clip],
+             [pos_clip, neg_clip, neg_tiniest]],
+            [[pos_clip, neg_clip, pos_tiniest],
+             [zero, zero, zero]]
         ])
         img_array_shape = img_array.shape
         return img_array
