@@ -1,13 +1,12 @@
-from sys import float_info
 from pathlib import Path
 import unittest
 import numpy as np
 import OpenImageIO as oiio
 
-from registers import Registers, is_black_pixel, strictly_negative_but_not_clipped_masked_array, \
+from registers import is_black_pixel, strictly_negative_but_not_clipped_masked_array, \
     strictly_positive_but_not_clipped_masked_array, biggest_strictly_negative_non_clipping_value, \
     tiniest_strictly_negative_non_clipping_value, tiniest_strictly_positive_non_clipping_value, \
-    biggest_strictly_positive_non_clipping_valuewiki
+    biggest_strictly_positive_non_clipping_value
 from frame_c18n import FrameC18n
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
@@ -29,7 +28,6 @@ class MyTestCase(unittest.TestCase):
         blackness = is_black_pixel(img_array)
         self.assertTrue(np.all(ref_blackness == blackness))
 
-
     def create_test_img_array(self):
         neg_clip = np.finfo(np.half).min
         neg_tiniest = -4 * np.finfo(np.half).tiny
@@ -37,32 +35,24 @@ class MyTestCase(unittest.TestCase):
         pos_tiniest = 4 * np.finfo(np.half).tiny
         pos_clip = np.finfo(np.half).max
         img_array = np.array([
-
             [[zero, pos_clip, zero],
               [neg_clip, neg_tiniest, pos_clip]],
-
              [[neg_clip, pos_tiniest, pos_clip],
               [zero, zero, zero]],
-
              [[pos_clip, zero, zero],
               [neg_tiniest, pos_clip, neg_clip]],
-
              [[pos_tiniest, pos_clip, neg_clip],
               [zero, zero, zero]],
-
              [[zero, zero, pos_clip],
               [pos_clip, neg_clip, neg_tiniest]],
-
              [[pos_clip, neg_clip, pos_tiniest],
               [zero, zero, zero]]
         ])
         img_array_shape = img_array.shape
-        img_spec = oiio.ImageSpec(img_array_shape[1], img_array_shape[0], img_array_shape[2], oiio.TypeHalf)
-        buf = oiio.ImageBuf(img_spec)
-        return img_array, img_spec
+        return img_array
 
     def test_strictly_negative_but_not_clipped_masked_array_creation(self):
-        ref_img_array, _ = self.create_test_img_array()
+        ref_img_array = self.create_test_img_array()
         masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).mask
         ref_array = np.array([
             [[False, False, False],
@@ -83,7 +73,7 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(match.all())
 
     def test_strictly_positive_but_not_clipped_masked_array_creation(self):
-        ref_img_array, _ = self.create_test_img_array()
+        ref_img_array = self.create_test_img_array()
         masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).mask
         ref_array = np.array([
             [[False, False, False],

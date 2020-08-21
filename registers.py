@@ -69,8 +69,6 @@ def tiniest_strictly_negative_non_clipping_value(array):
 
 
 def strictly_positive_but_not_clipped_masked_array(array):
-    first_mask = array <= 0
-    second_mask = array == np.finfo(np.half).max
     mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
     return ma.array(array, mask=mask)
 
