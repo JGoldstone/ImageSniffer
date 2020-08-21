@@ -4,7 +4,10 @@ import unittest
 import numpy as np
 import OpenImageIO as oiio
 
-from registers import Registers, is_black_pixel, strictly_negative_but_not_clipped_masked_array, strictly_positive_but_not_clipped_masked_array
+from registers import Registers, is_black_pixel, strictly_negative_but_not_clipped_masked_array, \
+    strictly_positive_but_not_clipped_masked_array, biggest_strictly_negative_non_clipping_value, \
+    tiniest_strictly_negative_non_clipping_value, tiniest_strictly_positive_non_clipping_value, \
+    biggest_strictly_positive_non_clipping_valuewiki
 from frame_c18n import FrameC18n
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
@@ -100,6 +103,25 @@ class MyTestCase(unittest.TestCase):
         match = np.array(ref_masked_array == masked_array)
         self.assertTrue(match.all())
 
+    def test_nonclipping_neg_biggest(self):
+        array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
+        biggest_neg_non_clipping = biggest_strictly_negative_non_clipping_value(array)
+        self.assertEqual(-12, biggest_neg_non_clipping)
+
+    def test_nonclipping_neg_tiniest(self):
+        array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
+        tiniest_neg_non_clipping = tiniest_strictly_negative_non_clipping_value(array)
+        self.assertEqual(-3, tiniest_neg_non_clipping)
+
+    def test_nonclipping_pos_min(self):
+        array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
+        tiniest_pos_non_clipping = tiniest_strictly_positive_non_clipping_value(array)
+        self.assertEqual(1.1, tiniest_pos_non_clipping)
+
+    def test_nonclipping_neg_max(self):
+        array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
+        biggest_pos_non_clipping = biggest_strictly_positive_non_clipping_value(array)
+        self.assertEqual(6, biggest_pos_non_clipping)
 
     # def test_register_ctor(self):
     #     ref_img_array, ref_img_spec = self.create_test_img_array()

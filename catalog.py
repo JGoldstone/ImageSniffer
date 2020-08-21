@@ -251,8 +251,7 @@ class Catalog:
         start = fileseq.start()
         end = fileseq.end()
         inc = 1
-        seq_frame_width = len(fileseq.padding())
-        # colorspace, ei = self._get_colorspace_and_ei(Path(first_frame_path))
+        seq_frame_width = len(fileseq.padding())        # colorspace, ei = self._get_colorspace_and_ei(Path(first_frame_path))
         first_frame_path, size = self._get_actual_path_and_size(fileseq)
         size = size // (1000 * 1000)
         if self._db is None:
