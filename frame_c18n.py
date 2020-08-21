@@ -8,6 +8,7 @@ Defines a class that collects information on the distribution of tristimulus
 
 """
 import numpy as np
+from pathlib import Path
 
 import OpenImageIO as oiio
 from OpenImageIO import ImageInput
@@ -40,21 +41,16 @@ class FrameC18n(object):
 
     def tally(self):
         img_array = self._image_input.read_image()
-        print(f"starting overall image tally")
-        self._overall_registers.tally(img_array, np.full(img_array.shape[0:2]))
-        print(f"ending overall image tally")
-        print(f"starting octant tallies")
+        self._overall_registers.tally(img_array, np.full(img_array.shape[0:2], True))
         for octant in self.octants.values():
-            print(f"starting tally for octant {octant}:")
             octant.tally(img_array)
-        print(f"ending octant tallies")
+
+    def summarize(self, indent_level=0):
+        summary = ""
+        self._overall_registers.summarize(indent_level + 1)
+        for octant in self.octants.values():
+            print(f"{'  '*indent_level}{octant}:")
+            octant.summarize(indent_level + 1)
 
     def __str__(self):
-        desc = []
-        img_size_desc = f"{self._img_size}-byte image, {self._width*self._height*2}"
-        desc.append(img_size_desc)
-        overall_bin_desc = str(self._overall_registers)
-        desc.append(overall_bin_desc)
-        for octant in self.octants:
-            desc.append(str(octant))
-        return '\n'.join(desc)
+        return f"Frame c18n of {Path(self._path).name} ({self._width}x{self._height})"

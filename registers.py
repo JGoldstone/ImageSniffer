@@ -21,6 +21,7 @@ of the samples corresponding to, e.g., the pixels of an image. Such statistics i
 
 from collections import OrderedDict
 import numpy as np
+import numpy.ma as ma
 
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
@@ -32,6 +33,7 @@ __status__ = 'Experimental'
 __all__ = [
     'Registers'
 ]
+
 
 def is_black_pixel(pixel):
     return np.all(pixel == 0, axis=-1)
@@ -49,26 +51,38 @@ def is_positive_clip_component(component):
     return component == np.finfo(np.half).max
 
 
+def strictly_negative_but_not_clipped_masked_array(array):
+    mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
+    return ma.array(array, mask=mask)
+
+
 def biggest_strictly_negative_non_clipping_value(array):
-    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.half).min)]
+    masked_array = strictly_negative_but_not_clipped_masked_array(array)
     if np.any(masked_array):
         return masked_array.min()
 
 
 def tiniest_strictly_negative_non_clipping_value(array):
-    masked_array = array[np.logical_and(array < 0, array > np.finfo(np.half).min)]
+    masked_array = strictly_negative_but_not_clipped_masked_array(array)
     if np.any(masked_array):
         return masked_array.max()
 
 
+def strictly_positive_but_not_clipped_masked_array(array):
+    first_mask = array <= 0
+    second_mask = array == np.finfo(np.half).max
+    mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
+    return ma.array(array, mask=mask)
+
+
 def tiniest_strictly_positive_non_clipping_value(array):
-    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.half).max)]
+    masked_array = strictly_positive_but_not_clipped_masked_array(array)
     if np.any(masked_array):
         return masked_array.min()
 
 
 def biggest_strictly_positive_non_clipping_value(array):
-    masked_array = array[np.logical_and(array > 0, array < np.finfo(np.half).max)]
+    masked_array = strictly_positive_but_not_clipped_masked_array(array)
     if np.any(masked_array):
         return masked_array.max()
 
@@ -89,13 +103,17 @@ class Counter(object):
         """
         self.desc = desc
         self._pred = pred
-        self.count = 0
+        self.count = None
 
     def tally_pixels(self, image, mask):
         self.count = len(np.argwhere(self._pred(image[mask])))
 
     def tally_channel_values(self, image, mask, channel):
         self.count = len(np.argwhere(self._pred(image[mask][..., channel])))
+
+    def summarize(self, indent_level=0):
+        if self.count:
+            return f"{'  ' * indent_level}{self.desc}: {self.count}\n"
 
     def __str__(self):
         print(f"{self.desc}: {self.count}")
@@ -117,10 +135,14 @@ class Latch(object):
         """
         self.desc = desc
         self._func = func
-        self.latched_value = None
+        self.latched_value = 0
 
     def latch_max_channel_value(self, image, mask, channel):
         self.latched_value = self._func(image[mask][..., channel])
+
+    def summarize(self, indent_level=0):
+        if self.latched_value:
+            return f"{'  ' * indent_level}{self.desc}: {self.latched_value}\n"
 
     def __str__(self):
         print(f"{self.desc}: {self.latched_value}")
@@ -216,14 +238,17 @@ class Registers(object):
             for i in range(len(self._channel_names)):
                 latch.latch_max_channel_value(img_array, ix_array, i)
 
-    def __str__(self):
-        representation = f"{self._desc}:\n"
-
+    def summarize(self, indent_level=0):
+        representation = ''
         for counter in self._pixel_counters.values():
-            representation += f"{counter.desc}: {counter.count}\n"
+            if counter.count > 0:
+                representation += f"{'  '*indent_level}{counter.desc}: {counter.count}\n"
         for counter in self._channel_counters.values():
-            representation += f"{counter.desc}: {counter.count}\n"
+            if counter.count > 0:
+                representation += f"{'  '*indent_level}{counter.desc}: {counter.count}\n"
         for latch in self._latches.values():
-            representation += f"{latch.desc}: {latch.latched_value}\n"
-
+            representation += f"\t{latch.desc}: {latch.latched_value}\n"
         return representation
+
+    def __str__(self):
+        return self._desc

@@ -61,6 +61,17 @@ class Octant(object):
                     keys.append((has_red_neg, has_green_neg, has_blue_neg))
         return keys
 
+    def octant_name(self):
+        name_pieces = []
+        negativities_and_names = zip(self._octant_key, ['red', 'green', 'blue'])
+        for negativity, name in negativities_and_names:
+            name_pieces += [f"{'-' if negativity else '+'}{name}"]
+            # if negativity:
+            #     name_pieces += [f"-{name}"]
+            # else:
+            #     name_pieces += [f"+{name}"]
+        return ', '.join(name_pieces)
+
     def _ix_for_octant(self, img_array):
         ix = np.full((self._img_spec.height, self._img_spec.width), True, dtype=np.bool)
         for chan, axis_negative_in_octant in enumerate(self._octant_key):
@@ -94,8 +105,14 @@ class Octant(object):
 
     def tally(self, img_array):
         octant_ix = self._ix_for_octant(img_array)
-        print(f"binning octant {self._octant_key}")
         self._bin(img_array, octant_ix)
-        print(f"done binning octant {self._octant_key}, setting up registers")
         self._registers.tally(img_array, octant_ix)
-        print(f"done setting up registers for {self._octant_key}")
+
+    def summarize(self, indent_level=0):
+        return self._registers.summarize(indent_level)
+
+    def __str__(self):
+        representation = f"octant {self.octant_name()}\n"
+        for line in str(self._registers).split('\n'):
+            representation += f"\t{line}\n"
+        return representation

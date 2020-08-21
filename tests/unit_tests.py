@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import OpenImageIO as oiio
 
-from registers import Registers, is_black_pixel
+from registers import Registers, is_black_pixel, strictly_negative_but_not_clipped_masked_array, strictly_positive_but_not_clipped_masked_array
 from frame_c18n import FrameC18n
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
@@ -28,11 +28,11 @@ class MyTestCase(unittest.TestCase):
 
 
     def create_test_img_array(self):
-        neg_clip = np.finfo(np.dtype('f16')).min
-        neg_tiniest = -4 * np.finfo(np.float16).tiny
+        neg_clip = np.finfo(np.half).min
+        neg_tiniest = -4 * np.finfo(np.half).tiny
         zero = 0.0
-        pos_tiniest = 4 * np.finfo(np.float16).tiny
-        pos_clip = np.finfo(np.dtype('f16')).max
+        pos_tiniest = 4 * np.finfo(np.half).tiny
+        pos_clip = np.finfo(np.half).max
         img_array = np.array([
 
             [[zero, pos_clip, zero],
@@ -56,27 +56,68 @@ class MyTestCase(unittest.TestCase):
         img_array_shape = img_array.shape
         img_spec = oiio.ImageSpec(img_array_shape[1], img_array_shape[0], img_array_shape[2], oiio.TypeHalf)
         buf = oiio.ImageBuf(img_spec)
-        # for row in range(img_array_shape[0]):
-        #     for col in range(img_array_shape[1]):
-        #         buf.setpixel(col, row, img_array[row][col])
         return img_array, img_spec
+
+    def test_strictly_negative_but_not_clipped_masked_array_creation(self):
+        ref_img_array, _ = self.create_test_img_array()
+        masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).mask
+        ref_array = np.array([
+            [[False, False, False],
+             [False, True, False]],
+            [[False, False, False],
+             [False, False, False]],
+            [[False, False, False],
+             [True, False, False]],
+            [[False, False, False],
+             [False, False, False]],
+            [[False, False, False],
+             [False, False, True]],
+            [[False, False, False],
+             [False, False, False]]
+        ])
+        ref_masked_array = np.logical_not(ref_array)
+        match = np.array(ref_masked_array == masked_array)
+        self.assertTrue(match.all())
+
+    def test_strictly_positive_but_not_clipped_masked_array_creation(self):
+        ref_img_array, _ = self.create_test_img_array()
+        masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).mask
+        ref_array = np.array([
+            [[False, False, False],
+             [False, False, False]],
+            [[False, True, False],
+             [False, False, False]],
+            [[False, False, False],
+             [False, False, False]],
+            [[True, False, False],
+             [False, False, False]],
+            [[False, False, False],
+             [False, False, False]],
+            [[False, False, True],
+             [False, False, False]]
+        ])
+        ref_masked_array = np.logical_not(ref_array)
+        match = np.array(ref_masked_array == masked_array)
+        self.assertTrue(match.all())
+
 
     # def test_register_ctor(self):
     #     ref_img_array, ref_img_spec = self.create_test_img_array()
     #     reference_neg_clip = np.array([
     #          [[False, False, False],
+    #           [False, True, False]],
+    #          [[False, False, False],
+    #           [False, False, False]],
+    #          [[False, False, False],
     #           [True, False, False]],
-    #          [[True, False, False],
+    #          [[False, False, False],
     #           [False, False, False]],
     #          [[False, False, False],
     #           [False, False, True]],
-    #          [[False, False, True],
-    #           [False, False, False]],
     #          [[False, False, False],
-    #           [False, True, False]],
-    #          [[False, True, False],
     #           [False, False, False]]
     #     ])
+    #
     #     reference_neg = np.array([
     #          [[False, False, False],
     #           [True, True, False]],
@@ -92,7 +133,7 @@ class MyTestCase(unittest.TestCase):
     #           [False, False, False]]
     #          ])
     #
-    #     reference_zero = np.array([
+    # #     reference_zero = np.array([
     #          [[True, False, True],
     #           [False, False, False]],
     #          [[False, False, False],
