@@ -73,7 +73,7 @@ class Octant(object):
         return ', '.join(name_pieces)
 
     def _ix_for_octant(self, img_array):
-        ix = np.full((self._img_spec.height, self._img_spec.width), True, dtype=np.bool)
+        ix = np.full(img_array.shape[:2], True, dtype=np.bool)
         for chan, axis_negative_in_octant in enumerate(self._octant_key):
             chan_in_octant_ix = img_array[..., chan] < 0 if axis_negative_in_octant else img_array[..., chan] >= 0
             np.logical_and(ix, chan_in_octant_ix, ix)
@@ -94,6 +94,7 @@ class Octant(object):
         self._octant_key = octant_key
         self._to_first_octant_scalars = [-1 if e else 1 for e in octant_key]
         self._edge = self._log10_edges(min_exp, max_exp, num_bins=num_bins)
+        self.samples_in_octant = 0
         self.hist3d = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
         self._registers = Registers(f"registers for octant {self._octant_key}", self._img_spec.channelnames)
 
@@ -105,6 +106,7 @@ class Octant(object):
 
     def tally(self, img_array):
         octant_ix = self._ix_for_octant(img_array)
+        self.samples_in_octant = np.sum(octant_ix)
         self._bin(img_array, octant_ix)
         self._registers.tally(img_array, octant_ix)
 
@@ -112,7 +114,5 @@ class Octant(object):
         return self._registers.summarize(indent_level)
 
     def __str__(self):
-        representation = f"octant {self.octant_name()}\n"
-        for line in str(self._registers).split('\n'):
-            representation += f"\t{line}\n"
+        representation = f"octant {self.octant_name()}"
         return representation

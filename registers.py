@@ -167,7 +167,7 @@ class Counter(object):
 
     def summarize(self, indent_level=0):
         if self.count:
-            return f"{'  ' * indent_level}{self.desc}: {self.count}\n"
+            return f"{'  '*indent_level}{self.desc}: {self.count}\n"
 
     def __str__(self):
         print(f"{self.desc}: {self.count}")
@@ -190,6 +190,7 @@ class Latch(object):
         self.desc = desc
         self._func = func
         self._channel = channel
+        self.values_examined_count = 0
         self.latched_value = 0
 
     def latch_max_channel_value(self, img, inv_mask):
@@ -269,7 +270,7 @@ class Registers(object):
         for desc, func in [('biggest strictly negative value', biggest_strictly_negative_non_clipping_value),
                            ('tiniest strictly negative value', tiniest_strictly_negative_non_clipping_value),
                            ('tiniest strictly positive value', tiniest_strictly_positive_non_clipping_value),
-                           ('biggest strictly positive value', biggest_strictly_negative_non_clipping_value)]:
+                           ('biggest strictly positive value', biggest_strictly_positive_non_clipping_value)]:
             for channel, channel_name in enumerate(channel_names):
                 latch_name = f"{desc} ({channel_name})"
                 latches[latch_name] = Latch(latch_name, func, channel)
@@ -289,18 +290,32 @@ class Registers(object):
         for counter in self._channel_counters.values():
             counter.tally_channel_values(img, inv_mask)
         for latch in self._latches.values():
+            latch.values_examined_count = np.sum(inv_mask)
             latch.latch_max_channel_value(img, inv_mask)
+
+    def _some_nonzero_counter_seen(self, counters):
+        saw_nonzero = False
+        for counter in counters:
+            if counter.count:
+                saw_nonzero = True
+                break
+        return saw_nonzero
 
     def summarize(self, indent_level=0):
         representation = ''
-        for counter in self._pixel_counters.values():
-            if counter.count > 0:
-                representation += f"{'  '*indent_level}{counter.desc}: {counter.count}\n"
-        for counter in self._channel_counters.values():
-            if counter.count > 0:
-                representation += f"{'  '*indent_level}{counter.desc}: {counter.count}\n"
+        if self._some_nonzero_counter_seen(self._pixel_counters.values()):
+            representation += f"{'  '*indent_level}pixel counters:\n"
+            for counter in self._pixel_counters.values():
+                if counter_summary := counter.summarize(indent_level + 1):
+                    representation += counter_summary
+        if self._some_nonzero_counter_seen(self._channel_counters.values()):
+            representation += f"{'  '*indent_level}channel counters:\n"
+            for counter in self._channel_counters.values():
+                if counter_summary := counter.summarize(indent_level + 1):
+                    representation += counter_summary
         for latch in self._latches.values():
-            representation += f"\t{latch.desc}: {latch.latched_value}\n"
+            if latch_summary := latch.summarize(indent_level + 1):
+                representation += latch_summary
         return representation
 
     def __str__(self):

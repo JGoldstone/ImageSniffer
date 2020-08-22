@@ -46,11 +46,14 @@ class FrameC18n(object):
             octant.tally(img_array)
 
     def summarize(self, indent_level=0):
-        summary = ""
-        print(self._overall_registers.summarize(indent_level + 1))
+        summary = ''
+        summary += "overall image statistics:\n"
+        summary += self._overall_registers.summarize(indent_level + 1)
         for octant in self.octants.values():
-            print(f"{'  '*indent_level}{octant}:")
-            octant.summarize(indent_level + 1)
+            if octant.samples_in_octant:
+                summary += f"{'  '*indent_level}statistics for {octant}:\n"
+                summary += octant.summarize(indent_level + 1)
+        return summary
 
     def __str__(self):
         return f"Frame c18n of {Path(self._path).name} ({self._width}x{self._height})"

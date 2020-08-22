@@ -201,7 +201,7 @@ class MyTestCase(unittest.TestCase):
         frame_c18n = FrameC18n(images_dir / test_image_name)
         frame_c18n.tally()
         print(frame_c18n)
-        frame_c18n.summarize()
+        print(frame_c18n.summarize())
 
 
 if __name__ == '__main__':
