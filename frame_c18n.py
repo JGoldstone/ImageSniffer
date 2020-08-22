@@ -50,8 +50,8 @@ class FrameC18n(object):
         summary += "overall image statistics:\n"
         summary += self._overall_registers.summarize(indent_level + 1)
         for octant in self.octants.values():
-            if octant.samples_in_octant:
-                summary += f"{'  '*indent_level}statistics for {octant}:\n"
+            if samples_in_octant := octant.samples_in_octant:
+                summary += f"{'  '*indent_level}statistics for {octant} ({samples_in_octant} samples):\n"
                 summary += octant.summarize(indent_level + 1)
         return summary
 
