@@ -161,8 +161,10 @@ class Counter(object):
         """
         self.count = len(np.argwhere(self.pred(img[inv_mask])))
 
-    def tally_channel_values(self, masked_image, channel):
-        self.count = len(np.argwhere(self.pred(masked_image[~masked_image.mask][..., channel])))
+    def tally_channel_values(self, img, inv_mask, channel):
+        channel_mask = np.full(img.shape[-1], False)
+        channel_mask[channel] = True
+        self.count = len(np.argwhere(self.pred(img[inv_mask & channel_mask])))
 
     def summarize(self, indent_level=0):
         if self.count:

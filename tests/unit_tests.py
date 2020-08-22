@@ -198,22 +198,24 @@ class MyTestCase(unittest.TestCase):
         single_indent_summary = counter.summarize(indent_level=1)
         self.assertEqual('  black pixels: 1', single_indent_summary.rstrip('\n'))
 
-    # def test_counter_channel_tally(self):
-    #     desc = 'negative clip channel values'
-    #     for channel in range(3):
-    #         img_array = np.array(np.arange(12)).reshape([2, 2, 3])
-    #         counter = Counter(desc, is_negative_clip_component(channel))
-    #         self.assertEqual(desc, counter.desc)
-    #         self.assertEqual(0, counter.count)
-    #         changing_channel = channel
-    #         unchanging_channel = (channel + 1) % 3
-    #         img_array[1][1][channel] = np.info(np.half).min
-    #         changing_counter = Counter(desc, is_negative_clip_component)
-    #         unchanging_counter = Counter(desc, is_negative_clip_component)
-    #         changing_counter.tally_channel_values(img_array, np.full(img_array.shape, True), changing_channel)
-    #         unchanging_counter.tally_channel_values(img_array, np.full(img_array.shape, True), unchanging_channel)
-    #         self.assertEqual(1, changing_counter.count)
-    #         self.assertEqual(0, unchanging_counter.count)
+    def test_counter_channel_tally(self):
+        desc = 'negative clip channel values'
+        for channel in range(3):
+            img_array = np.array(np.arange(12)).reshape([2, 2, 3])
+            inv_mask = np.full(img_array.shape, True)
+            counter = Counter(desc, is_negative_clip_component)
+            counter.tally_channel_values(img_array, inv_mask, channel)
+            self.assertEqual(desc, counter.desc)
+            self.assertEqual(0, counter.count)
+            changing_channel = channel
+            unchanging_channel = (channel + 1) % 3
+            img_array[1][1][channel] = np.finfo(np.half).min
+            changing_counter = Counter(desc, is_negative_clip_component)
+            unchanging_counter = Counter(desc, is_negative_clip_component)
+            changing_counter.tally_channel_values(img_array, inv_mask, changing_channel)
+            unchanging_counter.tally_channel_values(img_array, inv_mask, unchanging_channel)
+            self.assertEqual(1, changing_counter.count)
+            self.assertEqual(0, unchanging_counter.count)
 
     # def test_register_ctor(self):
     #     ref_img_array, ref_img_spec = self.create_test_img_array()
