@@ -1,13 +1,14 @@
 from pathlib import Path
 import unittest
 import numpy as np
+import numpy.ma as ma
 import OpenImageIO as oiio
 
 from registers import is_black_pixel, is_negative_clip_component, is_zero_component, is_positive_clip_component, \
-    strictly_negative_but_not_clipped_masked_array, \
-    strictly_positive_but_not_clipped_masked_array, biggest_strictly_negative_non_clipping_value, \
+    strictly_negative_but_not_clipped_inverse_mask, strictly_positive_but_not_clipped_inverse_mask, \
+    biggest_strictly_negative_non_clipping_value, \
     tiniest_strictly_negative_non_clipping_value, tiniest_strictly_positive_non_clipping_value, \
-    biggest_strictly_positive_non_clipping_value
+    biggest_strictly_positive_non_clipping_value, Counter, Latch
 from frame_c18n import FrameC18n
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
@@ -74,13 +75,12 @@ class MyTestCase(unittest.TestCase):
             [[pos_clip, neg_clip, pos_tiniest],
              [zero, zero, zero]]
         ])
-        img_array_shape = img_array.shape
         return img_array
 
-    def test_strictly_negative_but_not_clipped_masked_array_creation(self):
+    def test_strictly_negative_but_not_clipped_inverse_mask_creation(self):
         ref_img_array = self.create_test_img_array()
-        masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).mask
-        ref_array = np.array([
+        inv_mask = strictly_negative_but_not_clipped_inverse_mask(ref_img_array)
+        ref_inv_mask = np.array([
             [[False, False, False],
              [False, True, False]],
             [[False, False, False],
@@ -94,14 +94,34 @@ class MyTestCase(unittest.TestCase):
             [[False, False, False],
              [False, False, False]]
         ])
-        ref_masked_array = np.logical_not(ref_array)
-        match = np.array(ref_masked_array == masked_array)
+        match = np.array(ref_inv_mask == inv_mask)
         self.assertTrue(match.all())
 
-    def test_strictly_positive_but_not_clipped_masked_array_creation(self):
+    # def test_strictly_negative_but_not_clipped_masked_array_creation(self):
+    #     ref_img_array = self.create_test_img_array()
+    #     masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).mask
+    #     ref_array = np.array([
+    #         [[False, False, False],
+    #          [False, True, False]],
+    #         [[False, False, False],
+    #          [False, False, False]],
+    #         [[False, False, False],
+    #          [True, False, False]],
+    #         [[False, False, False],
+    #          [False, False, False]],
+    #         [[False, False, False],
+    #          [False, False, True]],
+    #         [[False, False, False],
+    #          [False, False, False]]
+    #     ])
+    #     ref_masked_array = np.logical_not(ref_array)
+    #     match = np.array(ref_masked_array == masked_array)
+    #     self.assertTrue(match.all())
+
+    def test_strictly_positive_but_not_clipped_inverse_mask_creation(self):
         ref_img_array = self.create_test_img_array()
-        masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).mask
-        ref_array = np.array([
+        inv_mask = strictly_positive_but_not_clipped_inverse_mask(ref_img_array)
+        ref_inv_mask = np.array([
             [[False, False, False],
              [False, False, False]],
             [[False, True, False],
@@ -115,9 +135,29 @@ class MyTestCase(unittest.TestCase):
             [[False, False, True],
              [False, False, False]]
         ])
-        ref_masked_array = np.logical_not(ref_array)
-        match = np.array(ref_masked_array == masked_array)
+        match = np.array(ref_inv_mask == inv_mask)
         self.assertTrue(match.all())
+
+    # def test_strictly_positive_but_not_clipped_masked_array_creation(self):
+    #     ref_img_array = self.create_test_img_array()
+    #     masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).mask
+    #     ref_array = np.array([
+    #         [[False, False, False],
+    #          [False, False, False]],
+    #         [[False, True, False],
+    #          [False, False, False]],
+    #         [[False, False, False],
+    #          [False, False, False]],
+    #         [[True, False, False],
+    #          [False, False, False]],
+    #         [[False, False, False],
+    #          [False, False, False]],
+    #         [[False, False, True],
+    #          [False, False, False]]
+    #     ])
+    #     ref_masked_array = np.logical_not(ref_array)
+    #     match = np.array(ref_masked_array == masked_array)
+    #     self.assertTrue(match.all())
 
     def test_nonclipping_neg_biggest(self):
         array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
@@ -138,6 +178,42 @@ class MyTestCase(unittest.TestCase):
         array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
         biggest_pos_non_clipping = biggest_strictly_positive_non_clipping_value(array)
         self.assertEqual(6, biggest_pos_non_clipping)
+
+    def test_counter_pixel_tally_no_masking(self):
+        img_array = np.array(np.arange(12)).reshape([2, 2, 3])
+        inv_mask = np.full(img_array.shape[:2], True)
+        desc = 'black pixels'
+        foo = is_black_pixel
+        counter = Counter(desc, is_black_pixel)
+        counter.tally_pixels(img_array, inv_mask)
+        self.assertEqual(desc, counter.desc)
+        self.assertEqual(0, counter.count)
+        img_array[1][1] = [0, 0, 0]
+        counter = Counter(desc, is_black_pixel)
+        counter.tally_pixels(img_array, inv_mask)
+        self.assertEqual(1, counter.count)
+        actual = counter.summarize(indent_level=0)
+        no_indent_summary = counter.summarize(indent_level=0)
+        self.assertEqual('black pixels: 1', no_indent_summary.rstrip('\n'))
+        single_indent_summary = counter.summarize(indent_level=1)
+        self.assertEqual('  black pixels: 1', single_indent_summary.rstrip('\n'))
+
+    # def test_counter_channel_tally(self):
+    #     desc = 'negative clip channel values'
+    #     for channel in range(3):
+    #         img_array = np.array(np.arange(12)).reshape([2, 2, 3])
+    #         counter = Counter(desc, is_negative_clip_component(channel))
+    #         self.assertEqual(desc, counter.desc)
+    #         self.assertEqual(0, counter.count)
+    #         changing_channel = channel
+    #         unchanging_channel = (channel + 1) % 3
+    #         img_array[1][1][channel] = np.info(np.half).min
+    #         changing_counter = Counter(desc, is_negative_clip_component)
+    #         unchanging_counter = Counter(desc, is_negative_clip_component)
+    #         changing_counter.tally_channel_values(img_array, np.full(img_array.shape, True), changing_channel)
+    #         unchanging_counter.tally_channel_values(img_array, np.full(img_array.shape, True), unchanging_channel)
+    #         self.assertEqual(1, changing_counter.count)
+    #         self.assertEqual(0, unchanging_counter.count)
 
     # def test_register_ctor(self):
     #     ref_img_array, ref_img_spec = self.create_test_img_array()
@@ -242,13 +318,13 @@ class MyTestCase(unittest.TestCase):
     #     self.assertTrue((reference_pos      == ixs['pos'     ]).all())
     #     self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
 
-    def test_frame_c18n(self):
-        images_dir = Path("../images")
-        print(f"current working directory is {Path.cwd()}")
-        test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
-        frame_c18n = FrameC18n(images_dir / test_image_name)
-        frame_c18n.tally()
-        print(frame_c18n)
+    # def test_frame_c18n(self):
+    #     images_dir = Path("../images")
+    #     print(f"current working directory is {Path.cwd()}")
+    #     test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
+    #     frame_c18n = FrameC18n(images_dir / test_image_name)
+    #     frame_c18n.tally()
+    #     print(frame_c18n)
 
 
 if __name__ == '__main__':

@@ -36,6 +36,17 @@ __all__ = [
 
 
 def is_black_pixel(pixel):
+    """Finds black pixels in a 2D array of tristimulus values
+
+    Parameters
+    ----------
+    pixel : numpy.ndarray
+
+    Returns
+    -------
+    bool
+
+    """
     return np.all(pixel == 0, axis=-1)
 
 
@@ -51,38 +62,70 @@ def is_positive_clip_component(component):
     return component == np.finfo(np.half).max
 
 
-def strictly_negative_but_not_clipped_masked_array(array):
-    mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
-    return ma.array(array, mask=mask)
+def strictly_negative_but_not_clipped_inverse_mask(array):
+    return np.logical_and(array > np.finfo(np.float16).min, array < 0)
 
 
 def biggest_strictly_negative_non_clipping_value(array):
-    masked_array = strictly_negative_but_not_clipped_masked_array(array)
-    if np.any(masked_array):
-        return masked_array.min()
+    inverse_mask = strictly_negative_but_not_clipped_inverse_mask(array)
+    if np.any(array[inverse_mask]):
+        return array[inverse_mask].min()
 
 
 def tiniest_strictly_negative_non_clipping_value(array):
-    masked_array = strictly_negative_but_not_clipped_masked_array(array)
-    if np.any(masked_array):
-        return masked_array.max()
+    inverse_mask = strictly_negative_but_not_clipped_inverse_mask(array)
+    if np.any(array[inverse_mask]):
+        return array[inverse_mask].max()
 
 
-def strictly_positive_but_not_clipped_masked_array(array):
-    mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
-    return ma.array(array, mask=mask)
+def strictly_positive_but_not_clipped_inverse_mask(array):
+    return np.logical_and(array > 0, array <  np.finfo(np.float16).max)
 
 
 def tiniest_strictly_positive_non_clipping_value(array):
-    masked_array = strictly_positive_but_not_clipped_masked_array(array)
-    if np.any(masked_array):
-        return masked_array.min()
+    inverse_mask = strictly_positive_but_not_clipped_inverse_mask(array)
+    if np.any(array[inverse_mask]):
+        return array[inverse_mask].min()
 
 
 def biggest_strictly_positive_non_clipping_value(array):
-    masked_array = strictly_positive_but_not_clipped_masked_array(array)
-    if np.any(masked_array):
-        return masked_array.max()
+    inverse_mask = strictly_positive_but_not_clipped_inverse_mask(array)
+    if np.any(array[inverse_mask]):
+        return array[inverse_mask].max()
+
+
+# def strictly_negative_but_not_clipped_masked_array(array):
+#     mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
+#     return ma.array(array, mask=mask)
+#
+#
+# def biggest_strictly_negative_non_clipping_value(array):
+#     masked_array = strictly_negative_but_not_clipped_masked_array(array)
+#     if np.any(masked_array):
+#         return masked_array.min()
+#
+#
+# def tiniest_strictly_negative_non_clipping_value(array):
+#     masked_array = strictly_negative_but_not_clipped_masked_array(array)
+#     if np.any(masked_array):
+#         return masked_array.max()
+#
+#
+# def strictly_positive_but_not_clipped_masked_array(array):
+#     mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
+#     return ma.array(array, mask=mask)
+#
+#
+# def tiniest_strictly_positive_non_clipping_value(array):
+#     masked_array = strictly_positive_but_not_clipped_masked_array(array)
+#     if np.any(masked_array):
+#         return masked_array.min()
+#
+#
+# def biggest_strictly_positive_non_clipping_value(array):
+#     masked_array = strictly_positive_but_not_clipped_masked_array(array)
+#     if np.any(masked_array):
+#         return masked_array.max()
 
 
 class Counter(object):
@@ -100,14 +143,26 @@ class Counter(object):
             Function taking a single argument, representing either a pixel or a pixel component
         """
         self.desc = desc
-        self._pred = pred
+        self.pred = pred
         self.count = None
 
-    def tally_pixels(self, image, mask):
-        self.count = len(np.argwhere(self._pred(image[mask])))
+    def tally_pixels(self, img, inv_mask):
+        """Count number of times a per-pixel predicate is satisfied
 
-    def tally_channel_values(self, image, mask, channel):
-        self.count = len(np.argwhere(self._pred(image[mask][..., channel])))
+        Parameters
+        ----------
+        img : np.ndarray
+        inv_mask : np.ndarray
+            2D array of booleans, where a True entry means 'tally this pixel'
+
+        Returns
+        -------
+
+        """
+        self.count = len(np.argwhere(self.pred(img[inv_mask])))
+
+    def tally_channel_values(self, masked_image, channel):
+        self.count = len(np.argwhere(self.pred(masked_image[~masked_image.mask][..., channel])))
 
     def summarize(self, indent_level=0):
         if self.count:
