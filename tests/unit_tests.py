@@ -1,8 +1,6 @@
 from pathlib import Path
 import unittest
 import numpy as np
-import numpy.ma as ma
-import OpenImageIO as oiio
 
 from registers import is_black_pixel, is_negative_clip_component, is_zero_component, is_positive_clip_component, \
     strictly_negative_but_not_clipped_inverse_mask, strictly_positive_but_not_clipped_inverse_mask, \
@@ -97,27 +95,6 @@ class MyTestCase(unittest.TestCase):
         match = np.array(ref_inv_mask == inv_mask)
         self.assertTrue(match.all())
 
-    # def test_strictly_negative_but_not_clipped_masked_array_creation(self):
-    #     ref_img_array = self.create_test_img_array()
-    #     masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).inv_mask
-    #     ref_array = np.array([
-    #         [[False, False, False],
-    #          [False, True, False]],
-    #         [[False, False, False],
-    #          [False, False, False]],
-    #         [[False, False, False],
-    #          [True, False, False]],
-    #         [[False, False, False],
-    #          [False, False, False]],
-    #         [[False, False, False],
-    #          [False, False, True]],
-    #         [[False, False, False],
-    #          [False, False, False]]
-    #     ])
-    #     ref_masked_array = np.logical_not(ref_array)
-    #     match = np.array(ref_masked_array == masked_array)
-    #     self.assertTrue(match.all())
-
     def test_strictly_positive_but_not_clipped_inverse_mask_creation(self):
         ref_img_array = self.create_test_img_array()
         inv_mask = strictly_positive_but_not_clipped_inverse_mask(ref_img_array)
@@ -137,27 +114,6 @@ class MyTestCase(unittest.TestCase):
         ])
         match = np.array(ref_inv_mask == inv_mask)
         self.assertTrue(match.all())
-
-    # def test_strictly_positive_but_not_clipped_masked_array_creation(self):
-    #     ref_img_array = self.create_test_img_array()
-    #     masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).inv_mask
-    #     ref_array = np.array([
-    #         [[False, False, False],
-    #          [False, False, False]],
-    #         [[False, True, False],
-    #          [False, False, False]],
-    #         [[False, False, False],
-    #          [False, False, False]],
-    #         [[True, False, False],
-    #          [False, False, False]],
-    #         [[False, False, False],
-    #          [False, False, False]],
-    #         [[False, False, True],
-    #          [False, False, False]]
-    #     ])
-    #     ref_masked_array = np.logical_not(ref_array)
-    #     match = np.array(ref_masked_array == masked_array)
-    #     self.assertTrue(match.all())
 
     def test_nonclipping_neg_biggest(self):
         array = np.array([np.finfo(np.half).min, -12, -3, 0, 1.1, 6, np.finfo(np.half).max])
@@ -243,109 +199,6 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(tiniest_neg_ref[channel], tiniest_non_clipping_neg_latch.latched_value)
             self.assertEqual(tiniest_pos_ref[channel], tiniest_non_clipping_pos_latch.latched_value)
             self.assertEqual(biggest_pos_ref[channel], biggest_non_clipping_pos_latch.latched_value)
-
-    # def test_register_ctor(self):
-    #     ref_img_array, ref_img_spec = self.create_test_img_array()
-    #     reference_neg_clip = np.array([
-    #          [[False, False, False],
-    #           [False, True, False]],
-    #          [[False, False, False],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [True, False, False]],
-    #          [[False, False, False],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [False, False, True]],
-    #          [[False, False, False],
-    #           [False, False, False]]
-    #     ])
-    #
-    #     reference_neg = np.array([
-    #          [[False, False, False],
-    #           [True, True, False]],
-    #          [[True, False, False],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [True, False, True]],
-    #          [[False, False, True],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [False, True, True]],
-    #          [[False, True, False],
-    #           [False, False, False]]
-    #          ])
-    #
-    # #     reference_zero = np.array([
-    #          [[True, False, True],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [True, True, True]],
-    #          [[False, True, True],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [True, True, True]],
-    #          [[True, True, False],
-    #           [False, False, False]],
-    #          [[False, False, False],
-    #           [True, True, True]]
-    #     ])
-    #
-    #     reference_black = np.array([
-    #          [False,
-    #           False],
-    #          [False,
-    #           True],
-    #          [False,
-    #           False],
-    #          [False,
-    #           True],
-    #          [False,
-    #           False],
-    #          [False,
-    #           True]
-    #     ])
-    #
-    #     reference_pos = np.array([
-    #          [[False, True, False],
-    #           [False, False, True]],
-    #          [[False, True, True],
-    #           [False, False, False]],
-    #          [[True, False, False],
-    #           [False, True, False]],
-    #          [[True, True, False],
-    #           [False, False, False]],
-    #          [[False, False, True],
-    #           [True, False, False]],
-    #          [[True, False, True],
-    #           [False, False, False]]
-    #     ])
-    #
-    #     reference_pos_clip = np.array([
-    #          [[False, True, False],
-    #           [False, False, True]],
-    #          [[False, False, True],
-    #           [False, False, False]],
-    #          [[True, False, False],
-    #           [False, True, False]],
-    #          [[False, True, False],
-    #           [False, False, False]],
-    #          [[False, False, True],
-    #           [True, False, False]],
-    #          [[True, False, False],
-    #           [False, False, False]]
-    #     ])
-    #     ixs = Registers._image_indices(ref_img_array)
-    #     registers = Registers(ref_img_spec)
-    #     registers.tally(ref_img_array, ixs)
-    #     # neg_clips_match = (reference_neg_clip == ixs['neg_clip']).all()
-    #     # self.assertTrue(neg_clips_match)
-    #     self.assertTrue((reference_neg_clip == ixs['neg_clip']).all())
-    #     self.assertTrue((reference_neg      == ixs['neg'     ]).all())
-    #     self.assertTrue((reference_zero     == ixs['zero'    ]).all())
-    #     self.assertTrue((reference_black    == ixs['black'   ]).all())
-    #     self.assertTrue((reference_pos      == ixs['pos'     ]).all())
-    #     self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
 
     def test_frame_c18n(self):
         images_dir = Path("../images")
