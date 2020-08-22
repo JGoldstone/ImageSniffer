@@ -19,9 +19,9 @@ from octant import Octant
 
 class FrameC18n(object):
 
-    def __init__(self, path, most_neg=2, least_neg=-4, num_bins=None):
+    def __init__(self, path, bin_min_exp=-4, bin_max_exp=2, num_bins=None):
         if not num_bins:
-            num_bins = 1 + most_neg - least_neg
+            num_bins = 1 + bin_max_exp - bin_min_exp
         self._path = path
         self._img_size = self._path.stat().st_size
         self._image_input = ImageInput.open(str(self._path))
@@ -37,7 +37,7 @@ class FrameC18n(object):
         self._overall_registers = Registers(f"registers for entire image", self._image_input.spec().channelnames)
         self.octants = {}
         for octant in Octant.octant_keys():
-            self.octants[octant] = Octant(self._image_input.spec(), octant, most_neg, least_neg, num_bins)
+            self.octants[octant] = Octant(self._image_input.spec(), octant, bin_min_exp, bin_max_exp, num_bins)
 
     def tally(self):
         img_array = self._image_input.read_image()

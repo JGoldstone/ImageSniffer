@@ -42,10 +42,10 @@ class Octant(object):
         and statistical data transformed to all-positive values; for the spatial data, the
         _to_first_octant_scalars attribute provides for transformatipon back to the original
         coordinate system.
-    min_exp : int
+    bin_min_exp : int
         Base-10 exponent of the largest negative value considered to not be 'overflow'. See
         documentation of the LogBins class for the gory details.
-    max_exp : int
+    bin_max_exp : int
         Base-10 exponent of the tinyest negative value considered to not be 'underflow'. See
         documentaionm of the LogBinds class for the gory details.
     num_bins : int
@@ -83,17 +83,17 @@ class Octant(object):
     def _log10_edges(min_exp, max_exp, num_bins=None):
         if not num_bins:
             num_bins = 1 + max_exp - min_exp
-        edge = np.exp(np.linspace(min_exp, max_exp, num_bins, dtype=np.dtype('f16')) * log(10))
-        edge = [0] + edge
-        edge[-1] *= (1 + np.finfo('f16').eps)  # make this a closed interval at both ends
-        edge += np.finfo('f16').max
+        zero_anchor = np.array([0])
+        edge = 10**(np.linspace(min_exp, max_exp, num_bins, dtype= np.dtype('half')))
+        max_anchor = np.array([np.finfo('half').max])
+        edge = np.hstack([zero_anchor, edge, max_anchor])
         return edge
 
-    def __init__(self, img_spec, octant_key, min_exp, max_exp, num_bins):
+    def __init__(self, img_spec, octant_key, bin_min_exp, bin_max_exp, num_bins):
         self._img_spec = img_spec
         self._octant_key = octant_key
         self._to_first_octant_scalars = [-1 if e else 1 for e in octant_key]
-        self._edge = self._log10_edges(min_exp, max_exp, num_bins=num_bins)
+        self._edge = self._log10_edges(bin_min_exp, bin_max_exp, num_bins=num_bins)
         self.samples_in_octant = 0
         self.hist3d = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
         self._registers = Registers(f"registers for octant {self._octant_key}", self._img_spec.channelnames)
