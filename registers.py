@@ -95,8 +95,8 @@ def biggest_strictly_positive_non_clipping_value(array):
 
 
 # def strictly_negative_but_not_clipped_masked_array(array):
-#     mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
-#     return ma.array(array, mask=mask)
+#     inv_mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
+#     return ma.array(array, inv_mask=inv_mask)
 #
 #
 # def biggest_strictly_negative_non_clipping_value(array):
@@ -112,8 +112,8 @@ def biggest_strictly_positive_non_clipping_value(array):
 #
 #
 # def strictly_positive_but_not_clipped_masked_array(array):
-#     mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
-#     return ma.array(array, mask=mask)
+#     inv_mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
+#     return ma.array(array, inv_mask=inv_mask)
 #
 #
 # def tiniest_strictly_positive_non_clipping_value(array):
@@ -143,7 +143,7 @@ class Counter(object):
             Function taking a single argument, representing either a pixel or a pixel component
         """
         self.desc = desc
-        self.pred = pred
+        self._pred = pred
         self.count = None
 
     def tally_pixels(self, img, inv_mask):
@@ -159,12 +159,12 @@ class Counter(object):
         -------
 
         """
-        self.count = len(np.argwhere(self.pred(img[inv_mask])))
+        self.count = len(np.argwhere(self._pred(img[inv_mask])))
 
     def tally_channel_values(self, img, inv_mask, channel):
         channel_mask = np.full(img.shape[-1], False)
         channel_mask[channel] = True
-        self.count = len(np.argwhere(self.pred(img[inv_mask & channel_mask])))
+        self.count = len(np.argwhere(self._pred(img[inv_mask & channel_mask])))
 
     def summarize(self, indent_level=0):
         if self.count:
@@ -192,8 +192,10 @@ class Latch(object):
         self._func = func
         self.latched_value = 0
 
-    def latch_max_channel_value(self, image, mask, channel):
-        self.latched_value = self._func(image[mask][..., channel])
+    def latch_max_channel_value(self, img, inv_mask, channel):
+        channel_mask = np.full(img.shape[-1], False)
+        channel_mask[channel] = True
+        self.latched_value = self._func(img[inv_mask & channel_mask])
 
     def summarize(self, indent_level=0):
         if self.latched_value:

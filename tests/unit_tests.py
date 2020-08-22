@@ -99,7 +99,7 @@ class MyTestCase(unittest.TestCase):
 
     # def test_strictly_negative_but_not_clipped_masked_array_creation(self):
     #     ref_img_array = self.create_test_img_array()
-    #     masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).mask
+    #     masked_array = strictly_negative_but_not_clipped_masked_array(ref_img_array).inv_mask
     #     ref_array = np.array([
     #         [[False, False, False],
     #          [False, True, False]],
@@ -140,7 +140,7 @@ class MyTestCase(unittest.TestCase):
 
     # def test_strictly_positive_but_not_clipped_masked_array_creation(self):
     #     ref_img_array = self.create_test_img_array()
-    #     masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).mask
+    #     masked_array = strictly_positive_but_not_clipped_masked_array(ref_img_array).inv_mask
     #     ref_array = np.array([
     #         [[False, False, False],
     #          [False, False, False]],
@@ -216,6 +216,33 @@ class MyTestCase(unittest.TestCase):
             unchanging_counter.tally_channel_values(img_array, inv_mask, unchanging_channel)
             self.assertEqual(1, changing_counter.count)
             self.assertEqual(0, unchanging_counter.count)
+
+    def test_latch(self):
+        desc = 'negative clip channel values'
+        for channel in range(3):
+            img_array = np.array([
+                [[-8, 6, -3],
+                 [20, 3, 10]],
+                [[38, 2, 1],
+                 [-12, 4, 1]]])
+            inv_mask = np.full(img_array.shape, True)
+            biggest_non_clipping_neg_latch = Latch('bigneg', biggest_strictly_negative_non_clipping_value)
+            tiniest_non_clipping_neg_latch = Latch('tinyneg', tiniest_strictly_negative_non_clipping_value)
+            tiniest_non_clipping_pos_latch = Latch('tinypos', tiniest_strictly_positive_non_clipping_value)
+            biggest_non_clipping_pos_latch = Latch('bigpos', biggest_strictly_positive_non_clipping_value)
+            biggest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask, channel)
+            tiniest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask, channel)
+            tiniest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask, channel)
+            biggest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask, channel)
+            self.assertEqual('bigneg', biggest_non_clipping_neg_latch.desc)
+            biggest_neg_ref = [-12, None, -3]
+            tiniest_neg_ref = [-8, None, -3]
+            tiniest_pos_ref = [20, 2, 1]
+            biggest_pos_ref = [38, 6, 10]
+            self.assertEqual(biggest_neg_ref[channel], biggest_non_clipping_neg_latch.latched_value)
+            self.assertEqual(tiniest_neg_ref[channel], tiniest_non_clipping_neg_latch.latched_value)
+            self.assertEqual(tiniest_pos_ref[channel], tiniest_non_clipping_pos_latch.latched_value)
+            self.assertEqual(biggest_pos_ref[channel], biggest_non_clipping_pos_latch.latched_value)
 
     # def test_register_ctor(self):
     #     ref_img_array, ref_img_spec = self.create_test_img_array()
