@@ -139,7 +139,6 @@ class MyTestCase(unittest.TestCase):
         img_array = np.array(np.arange(12)).reshape([2, 2, 3])
         inv_mask = np.full(img_array.shape[:2], True)
         desc = 'black pixels'
-        foo = is_black_pixel
         counter = Counter(desc, is_black_pixel)
         counter.tally_pixels(img_array, inv_mask)
         self.assertEqual(desc, counter.desc)
@@ -159,19 +158,14 @@ class MyTestCase(unittest.TestCase):
         for channel in range(3):
             img = np.array(np.arange(12)).reshape([2, 2, 3])
             inv_mask = np.full(img.shape[:2], True)
-            counter = Counter(desc, is_negative_clip_component)
-            counter.tally_channel_values(img, inv_mask, channel)
+            counter = Counter(desc, is_negative_clip_component, channel)
+            counter.tally_channel_values(img, inv_mask)
             self.assertEqual(desc, counter.desc)
             self.assertEqual(0, counter.count)
-            changing_channel = channel
-            unchanging_channel = (channel + 1) % 3
             img[1][1][channel] = np.finfo(np.half).min
-            changing_counter = Counter(desc, is_negative_clip_component)
-            unchanging_counter = Counter(desc, is_negative_clip_component)
-            changing_counter.tally_channel_values(img, inv_mask, changing_channel)
-            unchanging_counter.tally_channel_values(img, inv_mask, unchanging_channel)
-            self.assertEqual(1, changing_counter.count)
-            self.assertEqual(0, unchanging_counter.count)
+            counter = Counter(desc, is_negative_clip_component, channel)
+            counter.tally_channel_values(img, inv_mask)
+            self.assertEqual(1, counter.count)
 
     def test_latch(self):
         desc = 'negative clip channel values'
@@ -182,14 +176,14 @@ class MyTestCase(unittest.TestCase):
                 [[38, 2, 1],
                  [-12, 4, 1]]])
             inv_mask = np.full(img_array.shape[:2], True)
-            biggest_non_clipping_neg_latch = Latch('bigneg', biggest_strictly_negative_non_clipping_value)
-            tiniest_non_clipping_neg_latch = Latch('tinyneg', tiniest_strictly_negative_non_clipping_value)
-            tiniest_non_clipping_pos_latch = Latch('tinypos', tiniest_strictly_positive_non_clipping_value)
-            biggest_non_clipping_pos_latch = Latch('bigpos', biggest_strictly_positive_non_clipping_value)
-            biggest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask, channel)
-            tiniest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask, channel)
-            tiniest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask, channel)
-            biggest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask, channel)
+            biggest_non_clipping_neg_latch = Latch('bigneg', biggest_strictly_negative_non_clipping_value, channel)
+            tiniest_non_clipping_neg_latch = Latch('tinyneg', tiniest_strictly_negative_non_clipping_value, channel)
+            tiniest_non_clipping_pos_latch = Latch('tinypos', tiniest_strictly_positive_non_clipping_value, channel)
+            biggest_non_clipping_pos_latch = Latch('bigpos', biggest_strictly_positive_non_clipping_value, channel)
+            biggest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask)
+            tiniest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask)
+            tiniest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask)
+            biggest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask)
             self.assertEqual('bigneg', biggest_non_clipping_neg_latch.desc)
             biggest_neg_ref = [-12, None, -3]
             tiniest_neg_ref = [-8, None, -3]
@@ -207,6 +201,7 @@ class MyTestCase(unittest.TestCase):
         frame_c18n = FrameC18n(images_dir / test_image_name)
         frame_c18n.tally()
         print(frame_c18n)
+        frame_c18n.summarize()
 
 
 if __name__ == '__main__':

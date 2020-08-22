@@ -132,7 +132,7 @@ class Counter(object):
     """Counter holding the number of pixels in an image for which a provided test function returned True
     """
 
-    def __init__(self, desc, pred):
+    def __init__(self, desc, pred, channel=None):
         """
 
         Parameters
@@ -144,6 +144,7 @@ class Counter(object):
         """
         self.desc = desc
         self._pred = pred
+        self._channel = channel
         self.count = None
 
     def tally_pixels(self, img, inv_mask):
@@ -161,8 +162,8 @@ class Counter(object):
         """
         self.count = len(np.argwhere(self._pred(img[inv_mask])))
 
-    def tally_channel_values(self, img, inv_mask, channel):
-        self.count = len(np.argwhere(self._pred(img[inv_mask][..., channel])))
+    def tally_channel_values(self, img, inv_mask):
+        self.count = len(np.argwhere(self._pred(img[inv_mask][..., self._channel])))
 
     def summarize(self, indent_level=0):
         if self.count:
@@ -176,7 +177,7 @@ class Latch(object):
     """Register holding value representing the extrema of some function
     """
 
-    def __init__(self, desc, func):
+    def __init__(self, desc, func, channel):
         """
 
         Parameters
@@ -188,12 +189,11 @@ class Latch(object):
         """
         self.desc = desc
         self._func = func
+        self._channel = channel
         self.latched_value = 0
 
-    def latch_max_channel_value(self, img, inv_mask, channel):
-        # channel_mask = np.full(img.shape[-1], False)
-        # channel_mask[channel] = True
-        self.latched_value = self._func(img[inv_mask][..., channel])
+    def latch_max_channel_value(self, img, inv_mask):
+        self.latched_value = self._func(img[inv_mask][..., self._channel])
 
     def summarize(self, indent_level=0):
         if self.latched_value:
@@ -260,9 +260,9 @@ class Registers(object):
         for desc, func in [('negative clip', is_negative_clip_component),
                            ('zero', is_zero_component),
                            ('positive clip', is_positive_clip_component)]:
-            for channel_name in channel_names:
+            for channel, channel_name in enumerate(channel_names):
                 counter_name = f"{desc} ({channel_name})"
-                counters[counter_name] = Counter(counter_name, func)
+                counters[counter_name] = Counter(counter_name, func, channel)
 
     @staticmethod
     def _setup_channel_latches(channel_names, latches):
@@ -270,9 +270,9 @@ class Registers(object):
                            ('tiniest strictly negative value', tiniest_strictly_negative_non_clipping_value),
                            ('tiniest strictly positive value', tiniest_strictly_positive_non_clipping_value),
                            ('biggest strictly positive value', biggest_strictly_negative_non_clipping_value)]:
-            for channel_name in channel_names:
+            for channel, channel_name in enumerate(channel_names):
                 latch_name = f"{desc} ({channel_name})"
-                latches[latch_name] = Latch(desc, func)
+                latches[latch_name] = Latch(latch_name, func, channel)
 
     def tally(self, img, inv_mask):
         """
@@ -287,11 +287,9 @@ class Registers(object):
         for counter in self._pixel_counters.values():
             counter.tally_pixels(img, inv_mask)
         for counter in self._channel_counters.values():
-            for i in range(len(self._channel_names)):
-                counter.tally_channel_values(img, inv_mask, i)
+            counter.tally_channel_values(img, inv_mask)
         for latch in self._latches.values():
-            for i in range(len(self._channel_names)):
-                latch.latch_max_channel_value(img, inv_mask, i)
+            latch.latch_max_channel_value(img, inv_mask)
 
     def summarize(self, indent_level=0):
         representation = ''
