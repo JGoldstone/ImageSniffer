@@ -162,9 +162,7 @@ class Counter(object):
         self.count = len(np.argwhere(self._pred(img[inv_mask])))
 
     def tally_channel_values(self, img, inv_mask, channel):
-        channel_mask = np.full(img.shape[-1], False)
-        channel_mask[channel] = True
-        self.count = len(np.argwhere(self._pred(img[inv_mask & channel_mask])))
+        self.count = len(np.argwhere(self._pred(img[inv_mask][..., channel])))
 
     def summarize(self, indent_level=0):
         if self.count:
@@ -193,9 +191,9 @@ class Latch(object):
         self.latched_value = 0
 
     def latch_max_channel_value(self, img, inv_mask, channel):
-        channel_mask = np.full(img.shape[-1], False)
-        channel_mask[channel] = True
-        self.latched_value = self._func(img[inv_mask & channel_mask])
+        # channel_mask = np.full(img.shape[-1], False)
+        # channel_mask[channel] = True
+        self.latched_value = self._func(img[inv_mask][..., channel])
 
     def summarize(self, indent_level=0):
         if self.latched_value:
@@ -276,24 +274,24 @@ class Registers(object):
                 latch_name = f"{desc} ({channel_name})"
                 latches[latch_name] = Latch(desc, func)
 
-    def tally(self, img_array, ix_array):
+    def tally(self, img, inv_mask):
         """
         Parameters
         ----------
-        img_array : two-dimensional Numpy array of pixel values
+        img : two-dimensional Numpy array of pixel values
             Holds the image whose pixels will be sent to the various registers for sampling
-        ix_array : dictionary of two-dimensional numpy array of boolean values
-            Matched in width and height to img_array, the values in the dictionary indicating whether
+        inv_mask : dictionary of two-dimensional numpy array of boolean values
+            Matched in width and height to img, the values in the dictionary indicating whether
             the corresponding pixel passed some test.
         """
         for counter in self._pixel_counters.values():
-            counter.tally_pixels(img_array, ix_array)
+            counter.tally_pixels(img, inv_mask)
         for counter in self._channel_counters.values():
             for i in range(len(self._channel_names)):
-                counter.tally_channel_values(img_array, ix_array, i)
+                counter.tally_channel_values(img, inv_mask, i)
         for latch in self._latches.values():
             for i in range(len(self._channel_names)):
-                latch.latch_max_channel_value(img_array, ix_array, i)
+                latch.latch_max_channel_value(img, inv_mask, i)
 
     def summarize(self, indent_level=0):
         representation = ''

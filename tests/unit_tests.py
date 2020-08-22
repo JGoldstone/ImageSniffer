@@ -201,19 +201,19 @@ class MyTestCase(unittest.TestCase):
     def test_counter_channel_tally(self):
         desc = 'negative clip channel values'
         for channel in range(3):
-            img_array = np.array(np.arange(12)).reshape([2, 2, 3])
-            inv_mask = np.full(img_array.shape, True)
+            img = np.array(np.arange(12)).reshape([2, 2, 3])
+            inv_mask = np.full(img.shape[:2], True)
             counter = Counter(desc, is_negative_clip_component)
-            counter.tally_channel_values(img_array, inv_mask, channel)
+            counter.tally_channel_values(img, inv_mask, channel)
             self.assertEqual(desc, counter.desc)
             self.assertEqual(0, counter.count)
             changing_channel = channel
             unchanging_channel = (channel + 1) % 3
-            img_array[1][1][channel] = np.finfo(np.half).min
+            img[1][1][channel] = np.finfo(np.half).min
             changing_counter = Counter(desc, is_negative_clip_component)
             unchanging_counter = Counter(desc, is_negative_clip_component)
-            changing_counter.tally_channel_values(img_array, inv_mask, changing_channel)
-            unchanging_counter.tally_channel_values(img_array, inv_mask, unchanging_channel)
+            changing_counter.tally_channel_values(img, inv_mask, changing_channel)
+            unchanging_counter.tally_channel_values(img, inv_mask, unchanging_channel)
             self.assertEqual(1, changing_counter.count)
             self.assertEqual(0, unchanging_counter.count)
 
@@ -225,7 +225,7 @@ class MyTestCase(unittest.TestCase):
                  [20, 3, 10]],
                 [[38, 2, 1],
                  [-12, 4, 1]]])
-            inv_mask = np.full(img_array.shape, True)
+            inv_mask = np.full(img_array.shape[:2], True)
             biggest_non_clipping_neg_latch = Latch('bigneg', biggest_strictly_negative_non_clipping_value)
             tiniest_non_clipping_neg_latch = Latch('tinyneg', tiniest_strictly_negative_non_clipping_value)
             tiniest_non_clipping_pos_latch = Latch('tinypos', tiniest_strictly_positive_non_clipping_value)
@@ -347,13 +347,13 @@ class MyTestCase(unittest.TestCase):
     #     self.assertTrue((reference_pos      == ixs['pos'     ]).all())
     #     self.assertTrue((reference_pos_clip == ixs['pos_clip']).all())
 
-    # def test_frame_c18n(self):
-    #     images_dir = Path("../images")
-    #     print(f"current working directory is {Path.cwd()}")
-    #     test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
-    #     frame_c18n = FrameC18n(images_dir / test_image_name)
-    #     frame_c18n.tally()
-    #     print(frame_c18n)
+    def test_frame_c18n(self):
+        images_dir = Path("../images")
+        print(f"current working directory is {Path.cwd()}")
+        test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
+        frame_c18n = FrameC18n(images_dir / test_image_name)
+        frame_c18n.tally()
+        print(frame_c18n)
 
 
 if __name__ == '__main__':
