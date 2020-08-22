@@ -47,7 +47,7 @@ class FrameC18n(object):
 
     def summarize(self, indent_level=0):
         summary = ""
-        self._overall_registers.summarize(indent_level + 1)
+        print(self._overall_registers.summarize(indent_level + 1))
         for octant in self.octants.values():
             print(f"{'  '*indent_level}{octant}:")
             octant.summarize(indent_level + 1)
