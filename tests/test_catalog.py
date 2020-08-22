@@ -1,10 +1,8 @@
 import unittest
-# import uuid
-# import pandas as pd
 from pathlib import Path
 
-
 from catalog import Catalog
+
 
 class MyTestCase(unittest.TestCase):
 
@@ -12,6 +10,7 @@ class MyTestCase(unittest.TestCase):
         cat = Catalog("/tmp/jgoldstone000_image_catalog.csv")
         cat.register_content(Path("/Volumes/jgoldstone000/cust/shows/the_goldfinch/AFTER_CALIBRATION/MINI"))
         cat.save()
+
 
 if __name__ == '__main__':
     unittest.main()

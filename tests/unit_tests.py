@@ -147,7 +147,6 @@ class MyTestCase(unittest.TestCase):
         counter = Counter(desc, is_black_pixel)
         counter.tally_pixels(img_array, inv_mask)
         self.assertEqual(1, counter.count)
-        actual = counter.summarize(indent_level=0)
         no_indent_summary = counter.summarize(indent_level=0)
         self.assertEqual('black pixels: 1', no_indent_summary.rstrip('\n'))
         single_indent_summary = counter.summarize(indent_level=1)

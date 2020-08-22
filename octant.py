@@ -9,7 +9,6 @@ values in the octant.
 
 
 """
-from math import log
 import numpy as np
 
 from registers import Registers
@@ -84,7 +83,7 @@ class Octant(object):
         if not num_bins:
             num_bins = 1 + max_exp - min_exp
         zero_anchor = np.array([0])
-        edge = 10**(np.linspace(min_exp, max_exp, num_bins, dtype= np.dtype('half')))
+        edge = 10**(np.linspace(min_exp, max_exp, num_bins, dtype=np.dtype('half')))
         max_anchor = np.array([np.finfo('half').max])
         edge = np.hstack([zero_anchor, edge, max_anchor])
         return edge

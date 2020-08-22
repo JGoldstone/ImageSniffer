@@ -21,7 +21,6 @@ of the samples corresponding to, e.g., the pixels of an image. Such statistics i
 
 from collections import OrderedDict
 import numpy as np
-import numpy.ma as ma
 
 __author__ = 'Joseph Goldstone'
 __copyright__ = 'Copyright (C) 2020 Arnold & Richter Cine Technik GmbH & Co. Betriebs KG'
@@ -79,7 +78,7 @@ def tiniest_strictly_negative_non_clipping_value(array):
 
 
 def strictly_positive_but_not_clipped_inverse_mask(array):
-    return np.logical_and(array > 0, array <  np.finfo(np.float16).max)
+    return np.logical_and(array > 0, array < np.finfo(np.float16).max)
 
 
 def tiniest_strictly_positive_non_clipping_value(array):
@@ -293,7 +292,8 @@ class Registers(object):
             latch.values_examined_count = np.sum(inv_mask)
             latch.latch_max_channel_value(img, inv_mask)
 
-    def _some_nonzero_counter_seen(self, counters):
+    @staticmethod
+    def _some_nonzero_counter_seen(counters):
         saw_nonzero = False
         for counter in counters:
             if counter.count:
