@@ -8,6 +8,7 @@ from registers import is_black_pixel, is_negative_clip_component, is_zero_compon
     tiniest_strictly_negative_non_clipping_value, tiniest_strictly_positive_non_clipping_value, \
     biggest_strictly_positive_non_clipping_value, Counter, Latch
 from frame_c18n import FrameC18n
+from sequence_c18n import SequenceC18n
 
 EXR_IMAGE_PATH = '/tmp/green_negative_sprinkle_at_x0174_y_0980.exr'
 
@@ -139,12 +140,12 @@ class MyTestCase(unittest.TestCase):
         img_array = np.array(np.arange(12)).reshape([2, 2, 3])
         inv_mask = np.full(img_array.shape[:2], True)
         desc = 'black pixels'
-        counter = Counter(desc, is_black_pixel)
+        counter = Counter(desc, "unit_test", is_black_pixel)
         counter.tally_pixels(img_array, inv_mask)
         self.assertEqual(desc, counter.desc)
         self.assertEqual(0, counter.count)
         img_array[1][1] = [0, 0, 0]
-        counter = Counter(desc, is_black_pixel)
+        counter = Counter(desc, "unit_test", is_black_pixel)
         counter.tally_pixels(img_array, inv_mask)
         self.assertEqual(1, counter.count)
         no_indent_summary = counter.summarize(indent_level=0)
@@ -154,31 +155,31 @@ class MyTestCase(unittest.TestCase):
 
     def test_counter_channel_tally(self):
         desc = 'negative clip channel values'
-        for channel in range(3):
+        for channel, channel_name in [(0, 'R'), (1, 'G'), (2, 'B')]:
             img = np.array(np.arange(12)).reshape([2, 2, 3])
             inv_mask = np.full(img.shape[:2], True)
-            counter = Counter(desc, is_negative_clip_component, channel)
+            counter = Counter(desc, "unit_test", is_negative_clip_component, channel)
             counter.tally_channel_values(img, inv_mask)
             self.assertEqual(desc, counter.desc)
             self.assertEqual(0, counter.count)
             img[1][1][channel] = np.finfo(np.half).min
-            counter = Counter(desc, is_negative_clip_component, channel)
+            counter = Counter(desc, "unit_test", is_negative_clip_component, channel)
             counter.tally_channel_values(img, inv_mask)
             self.assertEqual(1, counter.count)
 
     def test_latch(self):
         desc = 'negative clip channel values'
-        for channel in range(3):
+        for channel, channel_name in [(0, 'R'), (1, 'G'), (2, 'B')]:
             img_array = np.array([
                 [[-8, 6, -3],
                  [20, 3, 10]],
                 [[38, 2, 1],
                  [-12, 4, 1]]])
             inv_mask = np.full(img_array.shape[:2], True)
-            biggest_non_clipping_neg_latch = Latch('bigneg', biggest_strictly_negative_non_clipping_value, channel)
-            tiniest_non_clipping_neg_latch = Latch('tinyneg', tiniest_strictly_negative_non_clipping_value, channel)
-            tiniest_non_clipping_pos_latch = Latch('tinypos', tiniest_strictly_positive_non_clipping_value, channel)
-            biggest_non_clipping_pos_latch = Latch('bigpos', biggest_strictly_positive_non_clipping_value, channel)
+            biggest_non_clipping_neg_latch = Latch('bigneg', 'nbig', biggest_strictly_negative_non_clipping_value, channel, channel_name)
+            tiniest_non_clipping_neg_latch = Latch('tinyneg', 'ntin', tiniest_strictly_negative_non_clipping_value, channel, channel_name)
+            tiniest_non_clipping_pos_latch = Latch('tinypos', 'ptin', tiniest_strictly_positive_non_clipping_value, channel, channel_name)
+            biggest_non_clipping_pos_latch = Latch('bigpos', 'pbig', biggest_strictly_positive_non_clipping_value, channel, channel_name)
             biggest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask)
             tiniest_non_clipping_neg_latch.latch_max_channel_value(img_array, inv_mask)
             tiniest_non_clipping_pos_latch.latch_max_channel_value(img_array, inv_mask)
@@ -199,9 +200,32 @@ class MyTestCase(unittest.TestCase):
         test_image_name = "cg_factory_B091C011_161004_R2XF.645.exr"
         frame_c18n = FrameC18n(images_dir / test_image_name)
         frame_c18n.tally()
+        columns = {}
+        frame_c18n.add_to_columns(columns)
         print(frame_c18n)
         print(frame_c18n.summarize())
 
+    def test_traversal(self):
+        cat = Catalog("/tmp/jgoldstone000_image_catalog.csv")
+        cat.register_content(Path("/Volumes/jgoldstone000/cust/shows/the_goldfinch/AFTER_CALIBRATION/MINI"))
+        cat.save()
+
+    def test_sequence_c18n(self):
+        volume = "/Volumes/jgoldstone004"
+        classification = "not_secret"
+        owner = "arri_bur_tfe"
+        show = "color_analysis"
+        scene = "asc_lurid_plastic_balls"
+        show_root = f"{volume}/{classification}/{owner}/{show}/{scene}"
+        element_type = "derived"
+        reel = "A001R24Y"
+        clip_file_or_seq_dir = "first_three"
+        clip_file_or_seq_dir_path = Path(f"{show_root}/{element_type}/{reel}/{clip_file_or_seq_dir}")
+        sequence_c18n = SequenceC18n()
+        sequence_c18n.parse_clip_path_or_seq_dir_path(Path(clip_file_or_seq_dir_path))
+        sequence_c18n.characterize_frames()
+        sequence_c18n.save(Path("/tmp/first_three/seq_c18n.csv"))
+        print("done")
 
 if __name__ == '__main__':
     unittest.main()

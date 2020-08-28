@@ -93,45 +93,19 @@ def biggest_strictly_positive_non_clipping_value(array):
         return array[inverse_mask].max()
 
 
-# def strictly_negative_but_not_clipped_masked_array(array):
-#     inv_mask = ma.mask_or(ma.make_mask(array == np.finfo(np.half).min), ma.make_mask(array >= 0))
-#     return ma.array(array, inv_mask=inv_mask)
-#
-#
-# def biggest_strictly_negative_non_clipping_value(array):
-#     masked_array = strictly_negative_but_not_clipped_masked_array(array)
-#     if np.any(masked_array):
-#         return masked_array.min()
-#
-#
-# def tiniest_strictly_negative_non_clipping_value(array):
-#     masked_array = strictly_negative_but_not_clipped_masked_array(array)
-#     if np.any(masked_array):
-#         return masked_array.max()
-#
-#
-# def strictly_positive_but_not_clipped_masked_array(array):
-#     inv_mask = ma.mask_or(ma.make_mask(array <= 0), ma.make_mask(array == np.finfo(np.half).max))
-#     return ma.array(array, inv_mask=inv_mask)
-#
-#
-# def tiniest_strictly_positive_non_clipping_value(array):
-#     masked_array = strictly_positive_but_not_clipped_masked_array(array)
-#     if np.any(masked_array):
-#         return masked_array.min()
-#
-#
-# def biggest_strictly_positive_non_clipping_value(array):
-#     masked_array = strictly_positive_but_not_clipped_masked_array(array)
-#     if np.any(masked_array):
-#         return masked_array.max()
+def add_to_columns(columns, keys_and_values):
+    for key, value in keys_and_values:
+        if key not in columns.keys():
+            columns[key] = [value]
+        else:
+            columns[key] += [value]
 
 
 class Counter(object):
     """Counter holding the number of pixels in an image for which a provided test function returned True
     """
 
-    def __init__(self, desc, pred, channel=None):
+    def __init__(self, desc, label, pred, channel=None):
         """
 
         Parameters
@@ -142,6 +116,7 @@ class Counter(object):
             Function taking a single argument, representing either a pixel or a pixel component
         """
         self.desc = desc
+        self._label = label
         self._pred = pred
         self._channel = channel
         self.count = None
@@ -164,6 +139,9 @@ class Counter(object):
     def tally_channel_values(self, img, inv_mask):
         self.count = len(np.argwhere(self._pred(img[inv_mask][..., self._channel])))
 
+    def add_to_columns(self, columns):
+        add_to_columns(columns, [(self._label, self.count)])
+
     def summarize(self, indent_level=0):
         if self.count:
             return f"{'  '*indent_level}{self.desc}: {self.count}\n"
@@ -176,7 +154,7 @@ class Latch(object):
     """Register holding value representing the extrema of some function
     """
 
-    def __init__(self, desc, func, channel):
+    def __init__(self, desc, label, func, channel):
         """
 
         Parameters
@@ -187,6 +165,7 @@ class Latch(object):
             function returning extreme of some channel value across an image
         """
         self.desc = desc
+        self._label = label
         self._func = func
         self._channel = channel
         self.values_examined_count = 0
@@ -198,6 +177,12 @@ class Latch(object):
     def summarize(self, indent_level=0):
         if self.latched_value:
             return f"{'  ' * indent_level}{self.desc}: {self.latched_value}\n"
+
+    def add_to_columns(self, columns):
+        latch_examined_label = f"{self._label}_examined"
+        latch_value_label = self._label
+        add_to_columns(columns, [(latch_examined_label, self.values_examined_count),
+                                 (latch_value_label, self.latched_value)])
 
     def __str__(self):
         print(f"{self.desc}: {self.latched_value}")
@@ -239,40 +224,45 @@ class Registers(object):
     tally
     """
 
-    def __init__(self, desc, channel_names):
+    def __init__(self, desc, domain, channel_names):
         self._desc = desc
+        self._domain = domain
         self._channel_names = channel_names
         self._pixel_counters = OrderedDict()
         self._channel_counters = OrderedDict()
         self._latches = OrderedDict()
-        self._setup_pixel_counters(self._pixel_counters)
-        self._setup_channel_counters(self._channel_names, self._channel_counters)
-        self._setup_channel_latches(self._channel_names, self._latches)
+        self._setup_pixel_counters(domain, self._pixel_counters)
+        self._setup_channel_counters(domain, self._channel_names, self._channel_counters)
+        self._setup_channel_latches(domain, self._channel_names, self._latches)
 
     @staticmethod
-    def _setup_pixel_counters(counters):
-        for desc, func in [('black pixel count', is_black_pixel)]:
-            counter = Counter(desc, func)
-            counters[desc] = counter
+    def _setup_pixel_counters(domain, counters):
+        for desc, func_label, func in [('black pixel count', 'blk', is_black_pixel)]:
+            counter_name = f"{desc}"
+            counter_label = f"{domain}_{func_label}"
+            counter = Counter(counter_name, counter_label, func)
+            counters[func_label] = counter
 
     @staticmethod
-    def _setup_channel_counters(channel_names, counters):
-        for desc, func in [('negative clip', is_negative_clip_component),
-                           ('zero', is_zero_component),
-                           ('positive clip', is_positive_clip_component)]:
+    def _setup_channel_counters(domain, channel_names, counters):
+        for desc, func_label, func in [('negative clip', 'nclp', is_negative_clip_component),
+                           ('zero', 'zero', is_zero_component),
+                           ('positive clip', 'pclp', is_positive_clip_component)]:
             for channel, channel_name in enumerate(channel_names):
-                counter_name = f"{desc} ({channel_name})"
-                counters[counter_name] = Counter(counter_name, func, channel)
+                counter_name = f"{desc}_{channel_name}"
+                counter_label = f"{domain}_{func_label}_{channel_name}"
+                counters[counter_name] = Counter(counter_name, counter_label, func, channel)
 
     @staticmethod
-    def _setup_channel_latches(channel_names, latches):
-        for desc, func in [('biggest strictly negative value', biggest_strictly_negative_non_clipping_value),
-                           ('tiniest strictly negative value', tiniest_strictly_negative_non_clipping_value),
-                           ('tiniest strictly positive value', tiniest_strictly_positive_non_clipping_value),
-                           ('biggest strictly positive value', biggest_strictly_positive_non_clipping_value)]:
+    def _setup_channel_latches(domain, channel_names, latches):
+        for desc, func_label, func in [('biggest strictly negative value', 'nbig', biggest_strictly_negative_non_clipping_value),
+                                       ('tiniest strictly negative value', 'ntin', tiniest_strictly_negative_non_clipping_value),
+                                       ('tiniest strictly positive value', 'ptin', tiniest_strictly_positive_non_clipping_value),
+                                       ('biggest strictly positive value', 'pbig', biggest_strictly_positive_non_clipping_value)]:
             for channel, channel_name in enumerate(channel_names):
-                latch_name = f"{desc} ({channel_name})"
-                latches[latch_name] = Latch(latch_name, func, channel)
+                latch_desc = f"{desc} {channel_name}"
+                latch_label = f"{domain}_{func_label}_{channel_name}"
+                latches[latch_desc] = Latch(latch_desc, latch_label, func, channel)
 
     def tally(self, img, inv_mask):
         """
@@ -291,6 +281,14 @@ class Registers(object):
         for latch in self._latches.values():
             latch.values_examined_count = np.sum(inv_mask)
             latch.latch_max_channel_value(img, inv_mask)
+
+    def add_to_columns(self, columns):
+        for counter in self._pixel_counters.values():
+            counter.add_to_columns(columns)
+        for counter in self._channel_counters.values():
+            counter.add_to_columns(columns)
+        for latch in self._latches.values():
+            latch.add_to_columns(columns)
 
     @staticmethod
     def _some_nonzero_counter_seen(counters):
@@ -318,5 +316,5 @@ class Registers(object):
                 representation += latch_summary
         return representation
 
-    def __str__(self):
-        return self._desc
+    # def __str__(self):
+    #     return self._desc

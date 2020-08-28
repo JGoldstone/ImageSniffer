@@ -8,7 +8,6 @@ Defines a class that collects information on the distribution of tristimulus
 
 """
 import numpy as np
-from pathlib import Path
 
 import OpenImageIO as oiio
 from OpenImageIO import ImageInput
@@ -34,16 +33,29 @@ class FrameC18n(object):
         self._width = roi.xend - roi.xbegin
         self._y = roi.ybegin
         self._height = roi.yend - roi.ybegin
-        self._overall_registers = Registers(f"registers for entire image", self._image_input.spec().channelnames)
+        self._overall_registers = Registers(f"registers for entire image", "overall",
+                                            self._image_input.spec().channelnames)
         self.octants = {}
-        for octant in Octant.octant_keys():
-            self.octants[octant] = Octant(self._image_input.spec(), octant, bin_min_exp, bin_max_exp, num_bins)
+        for octant_key in Octant.keys():
+            self.octants[octant_key] = Octant(self._image_input.spec(), octant_key, bin_min_exp, bin_max_exp, num_bins)
 
     def tally(self):
         img_array = self._image_input.read_image()
         self._overall_registers.tally(img_array, np.full(img_array.shape[0:2], True))
         for octant in self.octants.values():
             octant.tally(img_array)
+
+    def add_to_columns(self, columns):
+        """Append the information in the frame c18n to a Pandas DataFrame
+
+        Parameters
+        ----------
+        columns : dict
+
+        """
+        self._overall_registers.add_to_columns(columns)
+        for octant in self.octants:
+            self.octants[octant].add_to_columns(columns)
 
     def summarize(self, indent_level=0):
         summary = ''
@@ -55,5 +67,5 @@ class FrameC18n(object):
                 summary += octant.summarize(indent_level + 1)
         return summary
 
-    def __str__(self):
-        return f"Frame c18n of {Path(self._path).name} ({self._width}x{self._height})"
+    # def __str__(self):
+    #     return f"Frame c18n of {Path(self._path).name} ({self._width}x{self._height})"

@@ -52,7 +52,7 @@ class Octant(object):
     """
 
     @staticmethod
-    def octant_keys():
+    def keys():
         keys = []
         for has_blue_neg in (False, True):
             for has_green_neg in (False, True):
@@ -60,16 +60,18 @@ class Octant(object):
                     keys.append((has_red_neg, has_green_neg, has_blue_neg))
         return keys
 
-    def octant_name(self):
+    def _name(self, channel_names, spacer):
         name_pieces = []
-        negativities_and_names = zip(self._octant_key, ['red', 'green', 'blue'])
+        negativities_and_names = zip(self._octant_key, channel_names)
         for negativity, name in negativities_and_names:
-            name_pieces += [f"{'-' if negativity else '+'}{name}"]
-            # if negativity:
-            #     name_pieces += [f"-{name}"]
-            # else:
-            #     name_pieces += [f"+{name}"]
-        return ', '.join(name_pieces)
+            name_pieces += [f"{name}{'-' if negativity else '+'}"]
+        return spacer.join(name_pieces)
+
+    def name(self):
+        return self._name(['red', 'green', 'blue'], ', ')
+
+    def label(self):
+        return f"oct_{self._name(['r', 'g', 'b'], '')}"
 
     def _ix_for_octant(self, img_array):
         ix = np.full(img_array.shape[:2], True, dtype=np.bool)
@@ -95,7 +97,9 @@ class Octant(object):
         self._edge = self._log10_edges(bin_min_exp, bin_max_exp, num_bins=num_bins)
         self.samples_in_octant = 0
         self.hist3d = np.zeros((num_bins, num_bins, num_bins), dtype=np.uint)
-        self._registers = Registers(f"registers for octant {self._octant_key}", self._img_spec.channelnames)
+        self._label = self.label()
+        register_desc = f"registers for octant {self._label}"
+        self._registers = Registers(register_desc, self._label, self._img_spec.channelnames)
 
     def _bin(self, img_array, octant_ix):
         bins = [self._edge] * 3
@@ -109,9 +113,12 @@ class Octant(object):
         self._bin(img_array, octant_ix)
         self._registers.tally(img_array, octant_ix)
 
+    def add_to_columns(self, columns):
+        self._registers.add_to_columns(columns)
+
     def summarize(self, indent_level=0):
         return self._registers.summarize(indent_level)
 
-    def __str__(self):
-        representation = f"octant {self.octant_name()}"
-        return representation
+    # def __str__(self):
+    #     representation = f"octant {self.name()}"
+    #     return representation

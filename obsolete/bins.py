@@ -6,13 +6,13 @@ Data structure for collecting a distribution of some variable into bins
 Defines a class that maps a continuous real-valued variable into a finite
 set of bins representing disjoint intervals. The domains corresponding
 to each bin are open at the 'low end' and closed at the 'high end'.
-Domain values outside the given domain increment overflow or underflow
+Domain values outside the given label increment overflow or underflow
 counters.
 
 As an example application consider taking negative exposure values and
 mapping them across bins representing really huge errors (-100 e.v.)
 to tiny errors (barely more than 10e-6). Since we can't take the log of
-a negative numberm we first negate the domain value and then take its
+a negative numberm we first negate the label value and then take its
 base 10 log, and use that to index a set of 8 bins (and beyond that,
 overflow and underflow counters).
 
